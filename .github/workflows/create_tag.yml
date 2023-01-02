@@ -19,7 +19,8 @@ jobs:
           WITH_V: true
       - name: Repository dispatch tag created event
         uses: peter-evans/repository-dispatch@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          token: ${{ secrets.PAT }}
           event-type: tag-created
           client-payload: '{"new_version": "${{ steps.bump_version.outputs.new_tag }}"}'
