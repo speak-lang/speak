@@ -1,31 +1,28 @@
-name: Build and upload binaries to release
-
+# .github/workflows/release.yml
 on:
-  repository_dispatch:
-    types: [tag-created]
+  release:
+    types: [created]
 
 jobs:
   release:
-    name: Build and Release
-    runs-on: ${{ matrix.os }}
+    name: release ${{ matrix.target }}
+    runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
-            artifact_name: speak
-            asset_name: speak-linux-amd64
-          - os: macos-latest
-            artifact_name: speak
-            asset_name: speak-macos-amd64
+          - target: x86_64-pc-windows-gnu
+            archive: zip
+          - target: x86_64-unknown-linux-musl
+            archive: tar.gz tar.xz tar.zst
+          - target: x86_64-apple-darwin
+            archive: zip
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-      - name: Build project
-        run: cargo build --release --locked
-      - name: Upload binary to release
-        uses: svenstaro/upload-release-action@v1-release
+      - uses: actions/checkout@master
+      - name: Compile and release
+        uses: rust-build/rust-build.action@v1.4.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: target/release/${{ matrix.artifact_name }}
-          asset_name: ${{ matrix.asset_name }}
-          tag: ${{ github.event.client_payload.new_version }}
+          RUSTTARGET: ${{ matrix.target }}
+          ARCHIVE_TYPES: ${{ matrix.archive }}
