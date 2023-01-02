@@ -6,9 +6,9 @@ description = """Speak is an experimental programming language that aims to have
 This is to allow for the use of any written human language as preferred by the user."""
 
 [profile.release]
-# strip = true
-# lto = true
-# codegen-units = 1
+strip = true
+lto = true
+codegen-units = 1
 
 [dependencies]
 clap = { version = "4.0.32", features = ["derive"] }
