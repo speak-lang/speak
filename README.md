@@ -72,6 +72,8 @@ printf "Longest collatz seq under {} is {} items, sequence is {}", max, (len lon
 ```
 
 ## Getting Started
+The interpreter can be found [here](https://github.com/muse254/speak/releases) to download and start using locally.
+
 You can run Speak in 3 ways:
 1. The Speak binary can be used to execute a Speak script. It can be run like so: `speak run main.spk`.
 2. The Speak binary can initialize an interactive repl session where you can start typing Speak code. Initialized like so: `speak repl`.
