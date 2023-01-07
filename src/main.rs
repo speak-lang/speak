@@ -16,9 +16,9 @@ struct SpeakCLI {
     #[clap(subcommand)]
     command: Commands,
 
-    /// Allows the compiler to take a `Speak` identifier config file.
+    /// Allows the compiler to take a `Speak` language configuration from the presets in "assets/languages.toml".
     #[clap(short, require_equals(true))]
-    iconfig: Option<String>,
+    language: Option<String>,
 
     /// Log all interpreter debug information.
     #[clap(short, long)]
@@ -27,13 +27,10 @@ struct SpeakCLI {
 
 #[derive(Subcommand, Debug)]
 enum Commands {
-    /// runs `Speak` file provided
-    Run {
-        file_path: String,
-    },
+    /// Runs the `Speak` file provided.
+    Run { file_path: String },
+    ///  Initializes an interactive repl session to start typing Speak expressions.
     Repl,
-    /// Generates the `Speak` identifier config file.
-    Geniconf,
 }
 
 fn main() {
@@ -63,6 +60,5 @@ fn main() {
                 }
             }
         },
-        Commands::Geniconf => {}
     }
 }

@@ -1,2 +1,2 @@
 // First hello world program
-println "Hello World!"
+print "Hello World!"

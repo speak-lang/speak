@@ -20,9 +20,10 @@ This language is directly inspired by Linus Lee's work on his language [ink](htt
 ## Introduction
 Below programs can run with the current interpreter implementation.
 
-Here is an implementation of FizzBuzz in Speak, with default `English` configuration.
+Here is are implementations of FizzBuzz in Speak.
+
+With default `English` configuration.
 ```spk
-// speak fizzbuzz implementation
 fizzbuzz: n number -> string
     if n % 15 = 0 ? "FizzBuzz"
     if n % 3 = 0 ? "Fizz"
@@ -34,7 +35,20 @@ printf "fizzbuzz result for {} is {}" 100 (fizzbuzz 100)
 printf "fizzbuzz result for {} is {} itself" 7 (fizzbuzz 7)
 ```
 
-Fibonacci sequence:
+In Swahili
+```spk
+fizzbuzz: n nambari -> mlolongo
+    kama n % 15 = 0 ? "FizzBuzz"
+    kama n % 3 = 0 ? "Fizz"
+    kama n % 5 = 0 ? "Buzz"
+    mlolongo_andika n
+
+// ita na nambari 100
+andika_umbizo "matokeo ya fizzbuzz kwa {} ni {}" 100 (fizzbuzz 100)
+andika_umbizo "matokeo ya fizzbuzz kwa {} ni {} yenyewe" 7 (fizzbuzz 7)
+```
+
+English Speak, Fibonacci sequence.
 ```spk
 // naive implementation
 fib: n number -> number
@@ -48,15 +62,34 @@ fibMemo: n number -> number
     if memo[n] = () ? memo[n] is (fibMemo n - 1) + (fibMemo n - 2)
     memo[n]
 
-
 printf "Naive solution: {}" (fib 25)
 printf "Dynamic solution: {}" (fibMemo 20)
 ```
 
-Collatz sequence:
+
+Swahili Speak, Fibonacci sequence.
+```spk
+// utekelezaji jinga
+fib: n nambari -> nambari
+    kama n = 0 ? 0
+    kama n = 1 ? 1
+    (fib n - 1) + (fib n - 2)
+
+// utekelezaji wa kumbukumbu
+fibKumbukumbu: n nambari -> nambari
+    kumbukumbu ni [0,1]
+    kama kumbukumbu[n] = () ? kumbukumbu[n] ni (fibKumbukumbu n -1) + (fibKumbukumbu n + 1)
+    kumbukumbu[n]
+
+andika_umbizo "Matokeo ya utekelezaji jinga: {}" (fib 25)
+andika_umbizo "Matokeo ya utekelezaji wa kumbukumbu: {}" (fibKumbukumbu 20)
+```
+
+
+English Speak, Collatz sequence.
 ```spk
 // finding long collatz sequences
-//
+
 next: n number -> number
     if n % 2 = 0 ? n / 2 ! 3 * n + 1
 
@@ -69,6 +102,24 @@ collatz: n number -> []number
 max is 1_000
 longest is collatz max
 printf "Longest collatz seq under {} is {} items, sequence is {}", max, (len longest), longest
+```
+
+Swahili Speak, Collatz sequence.
+```spk
+// kutafuta mifuatano ya Collatz
+
+inayofuata: n nambari -> nambari
+    kama n % 2 = 0 ? n / 2 ! 3 * n + 1
+
+collatz: n nambari -> []nambari
+    kama n < 1 ? []
+    kama n = 1 ? [n]
+    [n] + collatz (inayofuata n) // safu zakusanywa kwa kutumia operesheni ya kuongeza
+
+// tafuta mifuatano ya Collatz kwa hifadhi ya upeo
+upeo ni 1_000
+safu ni collatz upeo
+andika_umbizo "mifuatano ya Collatz refu zaidi kwa {} ni vitu {} vya safu, safu yenyewe ni {}", upeo, (urefu upeo), safu
 ```
 
 ## Getting Started

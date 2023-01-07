@@ -14,3 +14,9 @@ codegen-units = 1
 clap = { version = "4.0.32", features = ["derive"] }
 lazy_static = "1.4.0"
 regex = "1.7.0"
+serde = "1.0.152"
+serde_derive = "1.0.152"
+toml = "0.5.10"
+
+[features]
+language = []

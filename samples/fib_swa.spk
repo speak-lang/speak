@@ -1,0 +1,14 @@
+// utekelezaji jinga
+fib: n nambari -> nambari
+    kama n = 0 ? 0
+    kama n = 1 ? 1
+    (fib n - 1) + (fib n - 2)
+
+// utekelezaji wa kumbukumbu
+fibKumbukumbu: n nambari -> nambari
+    kumbukumbu ni [0,1]
+    kama kumbukumbu[n] = () ? kumbukumbu[n] ni (fibKumbukumbu n -1) + (fibKumbukumbu n - 2)
+    kumbukumbu[n]
+
+andika_umbizo "Matokeo ya utekelezaji jinga: {}" (fib 25)
+andika_umbizo "Matokeo ya utekelezaji wa kumbukumbu: {}" (fibKumbukumbu 20)

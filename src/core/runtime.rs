@@ -4,6 +4,7 @@ use super::{
     lexer::tokenize,
     log::log_debug,
     parser::{parse, Node},
+    LANGUAGE_CONF,
 };
 use core::fmt;
 use std::{collections::HashMap, env, fs, io::BufReader};
@@ -258,9 +259,9 @@ pub fn load_builtins(ctx: &mut Context) -> Result<(), Err> {
     match &mut ctx.frame {
         StackFrame::Frame { frame, .. } => {
             frame.set(
-                "println".to_string(),
-                Value::NativeFunction(NativeFunction("println".to_string(), |_, inputs| {
-                    println!(
+                LANGUAGE_CONF.print.clone(),
+                Value::NativeFunction(NativeFunction(LANGUAGE_CONF.print.clone(), |_, inputs| {
+                    print!(
                         "{}",
                         inputs
                             .iter()
@@ -272,40 +273,60 @@ pub fn load_builtins(ctx: &mut Context) -> Result<(), Err> {
             );
 
             frame.set(
-                "sprint".to_string(),
-                Value::NativeFunction(NativeFunction("sprint".to_string(), |_, inputs| {
+                LANGUAGE_CONF.println.clone(),
+                Value::NativeFunction(NativeFunction(
+                    LANGUAGE_CONF.println.clone(),
+                    |_, inputs| {
+                        println!(
+                            "{}",
+                            inputs
+                                .iter()
+                                .fold(String::new(), |acc, x| acc + &x.string())
+                        );
+
+                        Ok(Value::Empty)
+                    },
+                )),
+            );
+
+            frame.set(
+                LANGUAGE_CONF.sprint.clone(),
+                Value::NativeFunction(NativeFunction(LANGUAGE_CONF.sprint.clone(), |_, inputs| {
                     Ok(Value::String(inputs[0].string()))
                 })),
             );
 
             frame.set(
-                "sprintf".to_string(),
-                Value::NativeFunction(NativeFunction("sprintf".to_string(), |_, inputs| {
-                    if inputs.len() <= 1 {
-                        return Err(Err {
-                            reason: ErrorReason::Runtime,
-                            message: "sprintf takes at least two arguments".to_string(),
-                        });
-                    }
+                LANGUAGE_CONF.sprintf.clone(),
+                Value::NativeFunction(NativeFunction(
+                    LANGUAGE_CONF.sprintf.clone(),
+                    |_, inputs| {
+                        if inputs.len() <= 1 {
+                            return Err(Err {
+                                reason: ErrorReason::Runtime,
+                                message: "sprintf takes at least two arguments".to_string(),
+                            });
+                        }
 
-                    Ok(Value::String(
-                        inputs[0].string().split("{}").enumerate().fold(
-                            String::new(),
-                            |acc, (i, x)| {
-                                if i == inputs.len() - 1 {
-                                    acc + x
-                                } else {
-                                    acc + x + &inputs[i + 1].string()
-                                }
-                            },
-                        ),
-                    ))
-                })),
+                        Ok(Value::String(
+                            inputs[0].string().split("{}").enumerate().fold(
+                                String::new(),
+                                |acc, (i, x)| {
+                                    if i == inputs.len() - 1 {
+                                        acc + x
+                                    } else {
+                                        acc + x + &inputs[i + 1].string()
+                                    }
+                                },
+                            ),
+                        ))
+                    },
+                )),
             );
 
             frame.set(
-                "printf".to_string(),
-                Value::NativeFunction(NativeFunction("printf".to_string(), |_, inputs| {
+                LANGUAGE_CONF.printf.clone(),
+                Value::NativeFunction(NativeFunction(LANGUAGE_CONF.printf.clone(), |_, inputs| {
                     if inputs.len() <= 1 {
                         return Err(Err {
                             reason: ErrorReason::Runtime,
@@ -332,12 +353,12 @@ pub fn load_builtins(ctx: &mut Context) -> Result<(), Err> {
             );
 
             frame.set(
-                "len".to_string(),
-                Value::NativeFunction(NativeFunction("len".to_string(), |_, inputs| {
+                LANGUAGE_CONF.len.clone(),
+                Value::NativeFunction(NativeFunction(LANGUAGE_CONF.len.clone(), |_, inputs| {
                     if inputs.len() != 1 {
                         return Err(Err {
                             reason: ErrorReason::Runtime,
-                            message: "len() takes exactly one argument".to_string(),
+                            message: format!("{}() takes exactly one argument", LANGUAGE_CONF.len),
                         });
                     }
 
@@ -345,8 +366,10 @@ pub fn load_builtins(ctx: &mut Context) -> Result<(), Err> {
                         Value::String(val) => Ok(Value::Number(val.len() as f64)),
                         Value::Array(_, val) => Ok(Value::Number(val.len() as f64)),
                         _ => Err(Err {
-                            message: "len cal only be called for array and string types"
-                                .to_string(),
+                            message: format!(
+                                "{} can only be called for array and string types",
+                                LANGUAGE_CONF.len
+                            ),
                             reason: ErrorReason::Runtime,
                         }),
                     }

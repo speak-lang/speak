@@ -1,0 +1,14 @@
+// kutafuta mifuatano ya Collatz
+
+inayofuata: n nambari -> nambari
+    kama n % 2 = 0 ? n / 2 ! 3 * n + 1
+
+collatz: n nambari -> []nambari
+    kama n < 1 ? []
+    kama n = 1 ? [n]
+    [n] + collatz (inayofuata n) // safu zakusanywa kwa kutumia operesheni ya kuongeza
+
+// tafuta mifuatano ya Collatz kwa hifadhi ya upeo
+upeo ni 1_000
+safu ni collatz upeo
+andika_umbizo "mifuatano ya Collatz refu zaidi kwa {} ni vitu {} vya safu, safu yenyewe ni {}", upeo, (urefu safu), safu

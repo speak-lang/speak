@@ -2,6 +2,7 @@ use super::{
     error::{Err, ErrorReason},
     eval::r#type::Type,
     log::log_debug,
+    LANGUAGE_CONF,
 };
 use regex::Regex;
 use std::io::{BufRead, BufReader};
@@ -70,12 +71,12 @@ impl Kind {
             Kind::Identifier => "identifier".to_string(),
             Kind::EmptyIdentifier => "'_'".to_string(),
 
-            Kind::If => "if".to_string(),
+            Kind::If => LANGUAGE_CONF.if_.clone(),
 
-            Kind::TrueLiteral => "true literal".to_string(),
-            Kind::FalseLiteral => "false literal".to_string(),
-            Kind::NumberLiteral => "number literal".to_string(),
-            Kind::StringLiteral => "string literal".to_string(),
+            Kind::TrueLiteral => format!("{} literal", LANGUAGE_CONF.true_),
+            Kind::FalseLiteral => format!("{} literal", LANGUAGE_CONF.false_),
+            Kind::NumberLiteral => format!("{} literal", LANGUAGE_CONF.number_),
+            Kind::StringLiteral => format!("{} literal", LANGUAGE_CONF.string_),
             Kind::EmptyLiteral => "()".to_string(),
 
             Kind::TypeName(t) => t.string(),
@@ -491,21 +492,21 @@ fn commit_arbitrary(
     };
 
     match entry.as_str() {
-        "number" => commit_token(Kind::TypeName(Type::Number), tokens),
+        x if x == LANGUAGE_CONF.number_ => commit_token(Kind::TypeName(Type::Number), tokens),
 
-        "bool" => commit_token(Kind::TypeName(Type::Bool), tokens),
+        x if x == LANGUAGE_CONF.bool_ => commit_token(Kind::TypeName(Type::Bool), tokens),
 
-        "string" => commit_token(Kind::TypeName(Type::String), tokens),
+        x if x == LANGUAGE_CONF.string_ => commit_token(Kind::TypeName(Type::String), tokens),
+
+        x if x == LANGUAGE_CONF.true_ => commit_token(Kind::TrueLiteral, tokens),
+
+        x if x == LANGUAGE_CONF.false_ => commit_token(Kind::FalseLiteral, tokens),
+
+        x if x == LANGUAGE_CONF.if_ => commit_token(Kind::If, tokens),
+
+        x if x == LANGUAGE_CONF.is_ => commit_token(Kind::AssignOp, tokens),
 
         "->" => commit_token(Kind::FunctionArrow, tokens),
-
-        "true" => commit_token(Kind::TrueLiteral, tokens),
-
-        "false" => commit_token(Kind::FalseLiteral, tokens),
-
-        "if" => commit_token(Kind::If, tokens),
-
-        "is" => commit_token(Kind::AssignOp, tokens),
 
         ".." => commit_token(Kind::EllipsisOp, tokens),
 
@@ -939,7 +940,7 @@ mod test {
                 tokens[0],
                 Tok {
                     kind: Kind::Identifier,
-                    str: Some("println".to_string()),
+                    str: Some("print".to_string()),
                     num: None,
                     position: Position { line: 2, column: 1 }
                 }
@@ -951,7 +952,7 @@ mod test {
                     kind: Kind::StringLiteral,
                     str: Some("Hello World!".to_string()),
                     num: None,
-                    position: Position { line: 2, column: 9 }
+                    position: Position { line: 2, column: 7 }
                 }
             );
         }

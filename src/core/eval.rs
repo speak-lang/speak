@@ -11,6 +11,8 @@ use super::{
 use std::collections::HashMap;
 
 pub mod r#type {
+    use crate::core::LANGUAGE_CONF;
+
     #[derive(Debug, PartialEq, Eq, Clone)]
     pub enum Type {
         /// Floating point number: f64
@@ -39,9 +41,9 @@ pub mod r#type {
     impl Type {
         pub fn string(&self) -> String {
             match self {
-                Type::Number => "number".to_string(),
-                Type::Bool => "bool".to_string(),
-                Type::String => "string".to_string(),
+                Type::Number => LANGUAGE_CONF.number_.clone(),
+                Type::Bool => LANGUAGE_CONF.bool_.clone(),
+                Type::String => LANGUAGE_CONF.string_.clone(),
                 Type::Object(obj) => format!("object: {}", obj),
                 Type::Array(t) => format!("[]{}", t.string()),
                 Type::Function => "function".to_string(),
@@ -51,9 +53,9 @@ pub mod r#type {
 
         pub fn to_type(type_name: &str) -> Type {
             match type_name {
-                "number" => Type::Number,
-                "bool" => Type::Bool,
-                "string" => Type::String,
+                x if x == LANGUAGE_CONF.number_ => Type::Number,
+                x if x == LANGUAGE_CONF.bool_ => Type::Bool,
+                x if x == LANGUAGE_CONF.string_ => Type::String,
                 "function" => Type::Function,
                 "()" => Type::Empty,
                 _ => Type::Object(type_name.to_string()), // If errorneous, fails at Runtime
@@ -285,24 +287,26 @@ impl Node {
                     }),
                 }
             }
-            Node::BinaryExpression { .. } => eval_binary_expr_node(self, stack, &allow_thunk),
-            Node::IndexingOp { operand, index, .. } => match operand.eval(stack, false)? {
-                Value::Array(_, vals) => {
-                    let idx = to_usize(&(to_number(index, stack)?), index.position())?;
-                    match idx >= vals.len() {
-                        true => Ok(Value::Empty), // index out of bounds return ()
-                        false => Ok(vals[idx].clone()),
+            Node::BinaryExpression { .. } => eval_binary_expr_node(self, stack),
+            Node::IndexingOp { operand, index, .. } => {
+                match operand.eval(stack, false)? {
+                    Value::Array(_, vals) => {
+                        let idx = to_usize(&(to_number(index, stack)?), index.position())?;
+                        match idx >= vals.len() {
+                            true => Ok(Value::Empty), // index out of bounds return ()
+                            false => Ok(vals[idx].clone()),
+                        }
                     }
+                    _ => Err(Err {
+                        message: format!(
+                            "could not parse {} as array value, at [{}]",
+                            operand.string(),
+                            operand.position().string()
+                        ),
+                        reason: ErrorReason::Runtime,
+                    }),
                 }
-                _ => Err(Err {
-                    message: format!(
-                        "could not parse {} as array value, at [{}]",
-                        operand.string(),
-                        operand.position().string()
-                    ),
-                    reason: ErrorReason::Runtime,
-                }),
-            },
+            }
             Node::SlicingOp {
                 operand,
                 start_inclusive,
@@ -439,11 +443,7 @@ fn eval_if_expr_node(node: &Node, stack: &mut StackFrame, allow_thunk: bool) -> 
     })
 }
 
-fn eval_binary_expr_node(
-    node: &Node,
-    stack: &mut StackFrame,
-    _allow_thunk: &bool,
-) -> Result<Value, Err> {
+fn eval_binary_expr_node(node: &Node, stack: &mut StackFrame) -> Result<Value, Err> {
     if let Node::BinaryExpression {
         operator,
         left_operand,
