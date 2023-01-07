@@ -13,8 +13,6 @@ use std::{env, fs};
 #[cfg(feature = "language")]
 static LANGUAGE_CONF_FILE: &str = "assets/languages.toml";
 
-extern crate lazy_static;
-
 lazy_static! {
     static ref LANGUAGE_CONF: LanguageConf = {
         #[cfg(feature = "language")]
@@ -31,7 +29,7 @@ lazy_static! {
     };
 }
 
-#[derive(Deserialize, Clone, Debug)]
+#[derive(Deserialize)]
 pub struct LanguageConf {
     // Keywords.
     number_: String,
