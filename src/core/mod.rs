@@ -44,9 +44,7 @@ pub struct LanguageConf {
 
     // Builtin functions.
     print: String,
-    printf: String,
     sprint: String,
-    sprintf: String,
     println: String,
     len: String,
 }
@@ -62,9 +60,7 @@ impl Default for LanguageConf {
             if_: "if".to_string(),
             is_: "is".to_string(),
             print: "print".to_string(),
-            printf: "printf".to_string(),
             sprint: "sprint".to_string(),
-            sprintf: "sprintf".to_string(),
             println: "println".to_string(),
             len: "len".to_string(),
         }

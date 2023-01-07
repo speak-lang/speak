@@ -11,4 +11,4 @@ collatz: n number -> []number
 // run a search for longest collatz sequence under max
 max is 1_000
 longest is collatz max
-printf "Longest collatz seq under {} is {} items, sequence is {}", max, (len longest), longest
+print "Longest collatz seq under {} is {} items, sequence is {}", max, (len longest), longest

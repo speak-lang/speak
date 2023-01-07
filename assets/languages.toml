@@ -9,8 +9,6 @@ if_ = "kama"
 is_ = "ni"
 # builtin functions
 print = "andika"
-printf = "andika_umbizo"
 sprint = "mlolongo_andika"
-sprintf = "mlolongo_andika_umbizo"
 println = "andika_laini"
 len = "urefu"

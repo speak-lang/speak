@@ -13,5 +13,5 @@ fibMemo: n number -> number
     memo[n]
 
 
-printf "Naive solution: {}\n" (fib 20)
-printf "Dynamic solution: {}" (fibMemo 20)
+println "Naive solution: {}" (fib 20)
+print "Dynamic solution: {}" (fibMemo 20)

@@ -16,10 +16,6 @@ struct SpeakCLI {
     #[clap(subcommand)]
     command: Commands,
 
-    /// Allows the compiler to take a `Speak` language configuration from the presets in "assets/languages.toml".
-    #[clap(short, require_equals(true))]
-    language: Option<String>,
-
     /// Log all interpreter debug information.
     #[clap(short, long)]
     verbose: bool,

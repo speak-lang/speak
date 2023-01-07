@@ -11,4 +11,4 @@ collatz: n nambari -> []nambari
 // tafuta mifuatano ya Collatz kwa hifadhi ya upeo
 upeo ni 1_000
 safu ni collatz upeo
-andika_umbizo "mifuatano ya Collatz refu zaidi kwa {} ni vitu {} vya safu, safu yenyewe ni {}", upeo, (urefu safu), safu
+andika "mifuatano ya Collatz refu zaidi kwa {} ni vitu {} vya safu, safu yenyewe ni {}", upeo, (urefu safu), safu
