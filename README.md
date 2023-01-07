@@ -11,7 +11,7 @@ It's main goal is for it to be used as an educational tool for non-english speak
 
 It's not meant to do any "heavy lifting" tasks like interacting with networks, writing servers... but once it's stable we can expose these primitives through Rust native functions. At the moment, they are non goals.
 
-It is expressive and dynamically typed (although all function signatures must be typed which is a runtime error if the types are violated by the function itself or its caller). A speak program is an expression.
+It is expressive and dynamically typed (although all function signatures must be typed which becomes a runtime error if the types are violated by the function itself or its caller). A speak program is an expression.
 
 ## About
 
@@ -22,7 +22,8 @@ Below programs can run with the current interpreter implementation.
 
 Here is are implementations of FizzBuzz in Speak.
 
-With default `English` configuration.
+
+English Speak, FizzBuzz.
 ```spk
 fizzbuzz: n number -> string
     if n % 15 = 0 ? "FizzBuzz"
@@ -31,11 +32,11 @@ fizzbuzz: n number -> string
     sprint n
 
 // call with 100
-printf "fizzbuzz result for {} is {}" 100 (fizzbuzz 100)
-printf "fizzbuzz result for {} is {} itself" 7 (fizzbuzz 7)
+println "fizzbuzz result for {} is {}" 100 (fizzbuzz 100)
+print "fizzbuzz result for {} is {} itself" 7 (fizzbuzz 7)
 ```
 
-In Swahili
+Swahili Speak, FizzBuzz.
 ```spk
 fizzbuzz: n nambari -> mlolongo
     kama n % 15 = 0 ? "FizzBuzz"
@@ -44,8 +45,8 @@ fizzbuzz: n nambari -> mlolongo
     mlolongo_andika n
 
 // ita na nambari 100
-andika_umbizo "matokeo ya fizzbuzz kwa {} ni {}" 100 (fizzbuzz 100)
-andika_umbizo "matokeo ya fizzbuzz kwa {} ni {} yenyewe" 7 (fizzbuzz 7)
+andika_laini "matokeo ya fizzbuzz kwa {} ni {}" 100 (fizzbuzz 100)
+andika "matokeo ya fizzbuzz kwa {} ni {} yenyewe" 7 (fizzbuzz 7)
 ```
 
 English Speak, Fibonacci sequence.
@@ -62,8 +63,8 @@ fibMemo: n number -> number
     if memo[n] = () ? memo[n] is (fibMemo n - 1) + (fibMemo n - 2)
     memo[n]
 
-printf "Naive solution: {}" (fib 25)
-printf "Dynamic solution: {}" (fibMemo 20)
+println "Naive solution: {}" (fib 25)
+print "Dynamic solution: {}" (fibMemo 20)
 ```
 
 
@@ -78,11 +79,11 @@ fib: n nambari -> nambari
 // utekelezaji wa kumbukumbu
 fibKumbukumbu: n nambari -> nambari
     kumbukumbu ni [0,1]
-    kama kumbukumbu[n] = () ? kumbukumbu[n] ni (fibKumbukumbu n -1) + (fibKumbukumbu n + 1)
+    kama kumbukumbu[n] = () ? kumbukumbu[n] ni (fibKumbukumbu n -1) + (fibKumbukumbu n - 2)
     kumbukumbu[n]
 
-andika_umbizo "Matokeo ya utekelezaji jinga: {}" (fib 25)
-andika_umbizo "Matokeo ya utekelezaji wa kumbukumbu: {}" (fibKumbukumbu 20)
+andika_laini "Matokeo ya utekelezaji jinga: {}" (fib 25)
+andika "Matokeo ya utekelezaji wa kumbukumbu: {}" (fibKumbukumbu 20)
 ```
 
 
@@ -101,7 +102,7 @@ collatz: n number -> []number
 // run a search for longest collatz sequence under max
 max is 1_000
 longest is collatz max
-printf "Longest collatz seq under {} is {} items, sequence is {}", max, (len longest), longest
+print "Longest collatz seq under {} is {} items, sequence is {}", max, (len longest), longest
 ```
 
 Swahili Speak, Collatz sequence.
@@ -119,7 +120,7 @@ collatz: n nambari -> []nambari
 // tafuta mifuatano ya Collatz kwa hifadhi ya upeo
 upeo ni 1_000
 safu ni collatz upeo
-andika_umbizo "mifuatano ya Collatz refu zaidi kwa {} ni vitu {} vya safu, safu yenyewe ni {}", upeo, (urefu upeo), safu
+andika "mifuatano ya Collatz refu zaidi kwa {} ni vitu {} vya safu, safu yenyewe ni {}", upeo, (urefu upeo), safu
 ```
 
 ## Getting Started
@@ -128,5 +129,18 @@ The interpreter can be found [here](https://github.com/muse254/speak/releases) t
 You can run Speak in 3 ways:
 1. The Speak binary can be used to execute a Speak script. It can be run like so: `speak run main.spk`.
 2. The Speak binary can initialize an interactive repl session where you can start typing Speak code. Initialized like so: `speak repl`.
-3. Speak interpreter is written in Rust and it Speak can be execute directly using the Rust interpreter's API.
+3. Speak interpreter is written in Rust and Speak can be executed directly using the Rust interpreter's API.
+
+## Building locally.
+To build locally, the [Rust toolchain](https://www.rust-lang.org/learn/get-started) must be installed.
+
+There are makefile recipes.
+1. For the `Swahili interpreter`. Run:
+```
+make swahili
+```
+2. For the `English interpreter`, default. Run:
+```
+make
+```
 
