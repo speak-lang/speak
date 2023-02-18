@@ -1,11 +1,8 @@
-#[macro_use]
-extern crate lazy_static;
-mod core;
-use crate::core::{
+use clap::{Parser, Subcommand};
+use core::{
     log::{log_interactive, log_safe_err},
     runtime::Context,
 };
-use clap::{Parser, Subcommand};
 use std::io::{self, BufReader};
 
 /// The `Speak` CLI Interpreter

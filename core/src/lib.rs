@@ -5,6 +5,9 @@ pub mod log;
 pub mod parser;
 pub mod runtime;
 
+#[macro_use]
+extern crate lazy_static;
+
 #[cfg(feature = "language")]
 use self::error::{Err, ErrorReason};
 use serde_derive::Deserialize;

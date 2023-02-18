@@ -11,7 +11,7 @@ use super::{
 use std::collections::HashMap;
 
 pub mod r#type {
-    use crate::core::LANGUAGE_CONF;
+    use crate::LANGUAGE_CONF;
 
     #[derive(Debug, PartialEq, Eq, Clone)]
     pub enum Type {
@@ -66,7 +66,7 @@ pub mod r#type {
 
 pub mod value {
     use super::r#type::Type;
-    use crate::core::{
+    use crate::{
         parser::Node,
         runtime::{NativeFn, VTable, MAX_PRINT_LEN},
     };
@@ -1159,7 +1159,7 @@ fn to_number(node: &mut Node, stack: &mut StackFrame) -> Result<f64, Err> {
 
 #[cfg(test)]
 mod test {
-    use crate::core::{
+    use crate::{
         eval::value::Value,
         lexer::Position,
         parser::Node,

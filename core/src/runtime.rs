@@ -6,7 +6,7 @@ use super::{
     parser::{parse, Node},
     LANGUAGE_CONF,
 };
-use core::fmt;
+use std::fmt;
 use std::{collections::HashMap, env, fs, io::BufReader};
 
 pub const MAX_PRINT_LEN: usize = 120;

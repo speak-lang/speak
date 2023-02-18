@@ -950,7 +950,7 @@ mod test {
                 tokens[1],
                 Tok {
                     kind: Kind::StringLiteral,
-                    str: Some("Hello World!".to_string()),
+                    str: Some("Hello, World!".to_string()),
                     num: None,
                     position: Position { line: 2, column: 7 }
                 }

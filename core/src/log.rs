@@ -1,4 +1,4 @@
-use crate::core::error::ErrorReason;
+use crate::error::ErrorReason;
 use std::io::{self, Write};
 
 static ANSI_RESET: &str = "[0;0m";

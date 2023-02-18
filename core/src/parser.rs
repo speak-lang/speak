@@ -998,7 +998,7 @@ fn guard_unexpected_input_end(tokens: &[Tok], idx: usize) -> Result<(), Err> {
 #[cfg(test)]
 mod test {
     use super::parse_expression;
-    use crate::core::{
+    use crate::{
         lexer::{Kind, Position, Tok},
         parser::Node,
     };
