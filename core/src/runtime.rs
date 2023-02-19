@@ -7,7 +7,7 @@ use super::{
     LANGUAGE_CONF,
 };
 use std::fmt;
-use std::{collections::HashMap, env, fs, io::BufReader};
+use std::{collections::HashMap, fs, io::BufReader};
 
 pub const MAX_PRINT_LEN: usize = 120;
 
@@ -151,8 +151,6 @@ impl StackFrame {
 /// imports, call stack, and cwd (working directory).
 #[derive(Debug)]
 pub struct Context {
-    /// cwd is an always-absolute path to current working dir (of module system)
-    _cwd: Option<String>,
     /// The currently executing file's path, if any
     pub file: Option<String>,
     /// Frame represents the Context's global heap
@@ -166,7 +164,6 @@ pub struct Context {
 impl Context {
     pub fn new(verbose: &bool) -> Self {
         Context {
-            _cwd: Some(env::current_dir().unwrap().to_str().unwrap().to_string()),
             file: None,
             frame: StackFrame::new(VTable(HashMap::new()), StackFrame::Nil),
             debug_lex: *verbose,

@@ -1,0 +1,3 @@
+[submodule "speak-playground"]
+	path = speak-playground
+	url = https://github.com/muse254/speak-playground
