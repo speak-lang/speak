@@ -1,3 +1,5 @@
+use crate::lexer::Tok;
+
 use super::{
     error::{Err, ErrorReason},
     eval::value::Value,
@@ -204,7 +206,7 @@ impl Context {
 
     /// Runs a Speak program defined by the buffer. This is the main way to invoke Speak programs
     /// from Rust.
-    pub fn exec(&mut self, input: BufReader<&[u8]>) -> Result<Value, Err> {
+    pub fn exec(&mut self, input: BufReader<&[u8]>) -> Result<(Value, Vec<Tok>, Vec<Node>), Err> {
         let mut tokens = Vec::new();
 
         let mut buf = input;
@@ -214,7 +216,9 @@ impl Context {
 
         parse(&tokens, &mut nodes, self.debug_parse)?;
 
-        self.eval(nodes, self.debug_dump)
+        let val = self.eval(nodes.clone(), self.debug_dump)?;
+
+        Ok((val, tokens, nodes))
     }
 
     /// Allows to Exec() a program file in a given context.
@@ -222,7 +226,8 @@ impl Context {
         match fs::read(path.clone()) {
             Ok(data) => {
                 self.file = Some(path);
-                self.exec(BufReader::new(&data[..]))
+                let (val, _, _) = self.exec(BufReader::new(&data[..]))?;
+                Ok(val)
             }
             Err(err) => Err(Err {
                 message: format!("Speak encountered a system error: {}", err),

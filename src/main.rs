@@ -41,7 +41,7 @@ fn main() {
 
             match io::stdin().read_line(&mut input) {
                 Ok(_) => match ctx.exec(BufReader::new(input.as_bytes())) {
-                    Ok(val) => {
+                    Ok((val, _, _)) => {
                         log_interactive(&val.string());
                     }
                     Err(err) => {
