@@ -104,6 +104,10 @@ pub mod value {
             func: Function,
         },
 
+        /// Assignment is a value that holds an assignment operation value after having been psuhed to the
+        /// stack. It's a convenience wrapper that helps decide whether to evaluate the next value in a contained scope.
+        Assignment(Box<Value>),
+
         Empty,
     }
 
@@ -136,6 +140,7 @@ pub mod value {
                 | Value::FunctionCallThunk { .. }
                 | Value::NativeFunction(..) => Type::Function,
                 Value::Empty => Type::Empty,
+                Value::Assignment(val) => val.value_type(),
             }
         }
 
@@ -162,6 +167,7 @@ pub mod value {
                     format!("Thunk of ({})", func.string())
                 }
                 Value::Empty => "".to_string(),
+                Value::Assignment(val) => val.string(),
             }
         }
     }
@@ -472,7 +478,7 @@ fn eval_binary_expr_node(node: &Node, stack: &mut StackFrame) -> Result<Value, E
                         let mut r = right_operand.as_ref().clone();
                         let right_value = r.eval(stack, false)?;
                         stack.set(value.clone(), right_value.clone());
-                        return Ok(right_value);
+                        return Ok(Value::Assignment(Box::new(right_value)));
                     }
 
                     Node::IndexingOp { operand, index, .. } => {
@@ -494,7 +500,7 @@ fn eval_binary_expr_node(node: &Node, stack: &mut StackFrame) -> Result<Value, E
 
                                 vals[idx] = right_value.clone();
 
-                                return Ok(right_value);
+                                return Ok(Value::Assignment(Box::new(right_value)));
                             }
                             _ => {
                                 return Err(Err {
@@ -1059,8 +1065,8 @@ fn unwrap_thunk(stack: &mut StackFrame, thunk: &mut Value) -> Result<Value, Err>
                 match defn {
                     Node::FunctionLiteral { sign, body, .. } => {
                         let mut val: Value;
-                        for stmt in body {
-                            val = stmt.eval(stack, false)?;
+                        for (i, stmt) in body.iter().enumerate() {
+                            val = stmt.clone().eval(stack, false)?;
                             match val {
                                 Value::FunctionCallThunk { .. } => {
                                     is_thunk = true;
@@ -1068,6 +1074,13 @@ fn unwrap_thunk(stack: &mut StackFrame, thunk: &mut Value) -> Result<Value, Err>
                                 }
 
                                 _ => {
+                                    // if there's a next evaluation, assignment does not count
+                                    if let Value::Assignment(_) = val {
+                                        if i + 1 != body.len() {
+                                            continue;
+                                        }
+                                    }
+
                                     // if the return type is that of the signature, return
                                     if match val.value_type() {
                                         Type::Object(obj) => obj,
@@ -1097,8 +1110,10 @@ fn unwrap_thunk(stack: &mut StackFrame, thunk: &mut Value) -> Result<Value, Err>
                             }
                         }
                         return Err(Err {
-                            message: "the expected return type could not be constructed"
-                                .to_string(),
+                            message: format!(
+                                "the expected return type `{}` could not be constructed",
+                                sign.2.string()
+                            ),
                             reason: ErrorReason::Runtime,
                         });
                     }
