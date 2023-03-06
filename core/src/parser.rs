@@ -169,8 +169,7 @@ impl Node {
             Node::FunctionLiteral {
                 sign: signature, ..
             } => format!(
-                "Function ({}): {} -> {}",
-                signature.0.position().string(),
+                "FunctionLiteral: {} -> {}",
                 signature
                     .1
                     .iter()
