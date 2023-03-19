@@ -1,0 +1,89 @@
+types:
+  number: number
+  bool: bool
+  string: string
+  object: object
+  function: function
+  native_function: native function
+  array: array
+literals:
+  true: true
+  false: false
+  if: if
+  is: is
+builtins:
+  print: print
+  sprint: sprint
+  println: println
+  len: len
+  mod: mod
+misc:
+  literal: literal
+  identifier: identifier
+  of: of
+  call: call
+  name: name
+errors:
+  const:
+    syntax: Syntax error
+    runtime: Runtime error
+    system: System error
+    assert: Assertion error
+  eval_e1: expected type (%{a}) but found (%{b}) at [%{c}]
+  eval_e2: "%{a} is not defined [%{b}]"
+  eval_e3: invalid unary operand %{a}, at %{b}
+  eval_e4: invalid unary operator %{a}, at %{b}
+  eval_e5: could not parse %{a} as array value, at [%{b}]
+  eval_e6: slicing operation does not provide a start or an end index
+  eval_e7: expected identifier node but got %{a} at [%{b}]
+  eval_if_expr_node_e1: the codition, (%{a}) at [%{b}], does not evaluate to bool value
+  eval_binary_expr_node_e1: invalid property name %{a} of composite value %{b}, at [%{c}]
+  eval_binary_expr_node_e2: composite value %{a} unknown
+  eval_binary_expr_node_e3: cannot assign value to non-identifier %{a}, at [%{b}]
+  eval_binary_expr_node_e4: values %{a} and %{b} do not support addition operation, at [%{c}]
+  eval_binary_expr_node_e5: values %{a} and %{b} do not support subtraction operation, at [%{c}]
+  eval_binary_expr_node_e6: values %{a} and %{b} do not support multiplication, at [%{c}]
+  eval_binary_expr_node_e7: decision by zero error, at [%{a}]
+  eval_binary_expr_node_e8: values %{a} and %{b} do not support division, at [%{c}]
+  eval_binary_expr_node_e9: decision by zero error in modulus, at [%{a}]
+  eval_binary_expr_node_e10: cannot take modulus of non-integer value %{a}, at [%{b}]
+  eval_binary_expr_node_e11: cannot take logical '&' of non-integer values %{a} and %{b}, at [%{c}]
+  eval_binary_expr_node_e12: values %{a} and %{b} do not support bitwise or logical '&', at [%{c}]
+  eval_binary_expr_node_e13: cannot take logical '|' of non-integer values %{a} and %{b}, at [%{c}]
+  eval_binary_expr_node_e14: values %{a} and %{b} do not support bitwise or logical '|', at [%{c}]
+  eval_binary_expr_node_e15: values %{a} and %{b} do not support comparison, at [%{c}]
+  eval_binary_expr_node_e16: unknown binary operator %{a}
+  eval_binary_expr_node_e17: cannot perform operation, %{a}, on (%{b}) and (%{c}), at [%{d}]
+  eval_binary_expr_node_e18: node, (%{a}), provided at [%{b}] is not a BinaryExprNode
+  eval_speak_function_e1: expected arg type of (%{a}) but got (%{b}), for %{c} arg to (%{d})
+  eval_speak_function_e2: could not resolve node (%{a}) as identifier
+  eval_speak_function_e3: expected the return type to be an identifier node but got (%{a})
+  eval_speak_function_e4: attempted to call a non-function value %{a} of type %{b}
+  unwrap_thunk_e1: the expected return type `%{a}` could not be constructed
+  unwrap_thunk_e2: expected function literal node value but got %{a}
+  unwrap_thunk_e3: expected thunk value but got %{a}
+  to_usize_e: value (%{a}) cannot be used as index, at[{%b}]
+  to_number_e: expected number, provided node is (%{a}) at [%{b}]
+  tokenize_e: missing trailing symbol '\"'
+  commit_arbitrary_e: 'invalid identifier: ("%{a}")'
+  parse_expression_e: unexpected token %{a} at %{b}, following an expression
+  parse_atom_e: unexpected start of atom, found (%{a}) at [%{b}]
+  parse_capsulated_expr_e: the expression expected ')' after [%{a}]
+  parse_array_op_e1: expected number literal or identifier for indexing, found (%{a}) at [%{b}]
+  parse_array_op_e2: expected EllipsisOp or RightBracket, found (%{a}) at [%{b}]
+  parse_object_literal_e1: parsing object literal, expected identifier at [%{a}]
+  parse_object_literal_e2: parsing objected literal, expected identifier/separator at [%{a}]
+  parse_function_literal_e1: the function literal is declared at [%{a}] and should be nested as a closure
+  parse_function_literal_e2: expected a type, found (%{a}) at [%{b}]
+  parse_fn_sign_args_e1: the signature parsed more types than arguements at [%{a}]
+  parse_fn_sign_args_e2: expected identifier, found (%{a}) at [%{b}]
+  guard_unexpected_input_end_e1: unexpected end of input at [%{a}]
+  guard_unexpected_input_end_e2: unexpected end of input
+  pop_frame_e: there is no frame in the stack to pop
+  up_e: StackFrame.up expected to find variable '%{a}' in frame but did not
+  exec_path_e: "Speak encountered a system error: %{a}"
+  load_builtins_e1: "%{a} takes at least one argument"
+  load_builtins_e2: "%{a} takes exactly one argument"
+  load_builtins_e3: "%{a} can only be called for array and string types"
+  load_builtins_e4: mod arguements must be string literals
+  load_builtins_e5: Stackframe provided is Nil

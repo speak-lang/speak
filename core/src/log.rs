@@ -22,12 +22,7 @@ pub fn log_interactive(args: &str) {
 }
 
 pub fn log_safe_err(reason: &ErrorReason, args: &str) {
-    let err_str = match reason {
-        ErrorReason::Syntax => "syntax error",
-        ErrorReason::Runtime => "runtime error",
-        ErrorReason::System => "system error",
-        ErrorReason::Assert => "invariant violation",
-    };
+    let err_str = reason.string();
     eprintln!(
         "{}{}: {}{}{}",
         ANSI_RED_BOLD, err_str, ANSI_RED, args, ANSI_RESET

@@ -1,0 +1,89 @@
+types:
+  number: nambari
+  bool: bool
+  string: mlolongo
+  object: kifaa
+  function: kazi
+  native_function: kazi asilia
+  array: safu
+literals:
+  true: kweli
+  false: ongo
+  if: kama
+  is: ni
+builtins:
+  print: andika
+  sprint: mlolongo_andika
+  println: andika_laini
+  len: urefu
+  mod: moduli
+misc:
+  literal: halisi
+  identifier: kitambulisho
+  of: ya
+  call: ita
+  name: jina
+errors:
+  const:
+    syntax: Hitilafu ya kisintaksia
+    runtime: Hitilafu ya wakati wa utekelezaji
+    system: Hitilafu ya mfumo
+    assert: Hitilafu ya kudai
+  eval_e1: aina iliyotarajiwa (%{a}) lakini kapata (%{b}) kwenye nafasi [%{c}]
+  eval_e2: "%{a} haijafafanuliwa kwenye nafasi [%{b}]"
+  eval_e3: operesheni isiyo sahihi %{a}, kwenye nafasi %{b}
+  eval_e4: opereta isiyo sahihi %{a}, kwenye nafasi %{b}
+  eval_e5: haikuweza kuchanganua %{a} kama thamani ya safu, kwenye nafasi %{b}
+  eval_e6: operesheni ya kukata haitoi faharasa ya mwanzo au mwisho
+  eval_e7: nodi ya kitambulisho ilitarajiwa lakini kapata %{a}, kwenye nafasi [%{b}]
+  eval_if_expr_node_e1: msimbo, (%{a}) kwenye nafasi [%{b}], hautathmini kwa thamani ya bool
+  eval_binary_expr_node_e1: jina la sifa batili %{a} la thamani ya mchanganyiko %{b}, kwenye nafasi [%{c}]
+  eval_binary_expr_node_e2: thamani ya mchanganyiko %{a} haijulikani
+  eval_binary_expr_node_e3: haiwezi kabidhi thamani kwa kitambulisho kisichojulikana %{a}, kwenye nafasi [%{b}]
+  eval_binary_expr_node_e4: thamani %{a} na %{b} hazitumii operesheni ya kuongeza, kwenye nafasi [%{c}]
+  eval_binary_expr_node_e5: thamani %{a} na %{b} hazitumii operesheni ya kutoa, kwenye nafasi [%{c}]
+  eval_binary_expr_node_e6: thamani %{a} na %{b} hazitumii utendakazi wa kuzidisha, kwenye nafasi [%{c}]
+  eval_binary_expr_node_e7: uamuzi kwa kosa sifuri, kwenye nafasi [%{a}]
+  eval_binary_expr_node_e8: thamani %{a} na %{b} hazitumii mgawanyiko, kwenye nafasi [%{c}]
+  eval_binary_expr_node_e9: uamuzi wa kosa la sifuri katika moduli, kwenye nafasi [%{a}]
+  eval_binary_expr_node_e10: haiwezi kuchukua moduli ya thamani isiyo kamili %{a}, kwenye nafasi [%{b}]
+  eval_binary_expr_node_e11: haiwezi kuchukua kimantiki '&' ya thamani zisizo kamili %{a} na %{b}, kwenye nafasi [%{c}]
+  eval_binary_expr_node_e12: thamani %{a} na %{b} hazitumii 'bitwise' au kimantiki '&', kwenye nafasi [%{c}]
+  eval_binary_expr_node_e13: haiwezi kuchukua '|' yenye mantiki ya thamani zisizo kamili %{a} na %{b}, kwenye nafasi [%{c}]
+  eval_binary_expr_node_e14: thamani %{a} na %{b} hazitumii 'bitwise' au kimantiki '|', kwenye nafasi [%{c}]
+  eval_binary_expr_node_e15: thamani %{a} na %{b} haziauni utendakazi wa kulinganisha, kwenye nafasi [%{c}]
+  eval_binary_expr_node_e16: opereta binary haijulikani %{a}
+  eval_binary_expr_node_e17: haiwezi kufanya operesheni, %{a}, kwenye (%{b}) na (%{c}), kwenye nafasi [%{d}]
+  eval_binary_expr_node_e18: nodi, (%{a}), iliyotolewa kwa [%{b}] si BinaryExprNode
+  eval_speak_function_e1: aina ya hoja inayotarajiwa ya (%{a}) lakini ikapata (%{b}), kwa %{c} ya hoja kwa (%{d})
+  eval_speak_function_e2: haikuweza kutatua nodi (%{a}) kama kitambulisho
+  eval_speak_function_e3: ilitarajia aina ya kurudi kuwa nodi ya kitambulisho lakini nikapata (%{a})
+  eval_speak_function_e4: ilijaribu kuita thamani isiyo-kazi %{a} ya aina %{b}
+  unwrap_thunk_e1: aina ya kurejesha inayotarajiwa `%{a}` haikuweza kujengwa
+  unwrap_thunk_e2: utendakazi uliotarajiwa thamani halisi ya nodi lakini nikapata %{a}
+  unwrap_thunk_e3: ilitarajia thamani ya 'thunk' lakini ilipata %{a}
+  to_usize_e: thamani (%{a}) haiwezi kutumika kama faharasa, kwa[{%b}]
+  to_number_e: nambari ilitarajiwa, nodi iliyotolewa ni (%{a}) kwa [%{b}]
+  tokenize_e: ishara inayofuata inayokosekana '\"'
+  commit_arbitrary_e: 'kitambulisho batili: ("%{a}")'
+  parse_expression_e: ishara isiyotarajiwa %{a} kwa %{b}, kufuatia usemi
+  parse_atom_e: mwanzo usiotarajiwa wa atomi, umepatikana (%{a}) kwenye nafasi [%{b}]
+  parse_capsulated_expr_e: usemi unaotarajiwa ')' baada ya [%{a}]
+  parse_array_op_e1: nambari inayotarajiwa halisi au kitambulisho cha kuorodhesha, imepatikana (%{a}) kwenye nafasi [%{b}]
+  parse_array_op_e2: EllipsisOp au RightBracket ilitarajiwa, (%{a}) imepatikana kwenye nafasi [%{b}]
+  parse_object_literal_e1: kuchanganua kitu halisi, kitambulisho kilitarajiwa kwenye nafasi [%{a}]
+  parse_object_literal_e2: kuchanganua kitu halisi, kitambulisho/kitenganishi kilitarajiwa kwenye nafasi [%{a}]
+  parse_function_literal_e1: kazi halisi imetangazwa kwa [%{a}] na inapaswa kuwekwa kama 'closure'
+  parse_function_literal_e2: ilitarajia aina, iliyopatikana (%{a}) kwenye nafasi [%{b}]
+  parse_fn_sign_args_e1: sahihi ilichanganua aina zaidi ya hoja katika [%{a}]
+  parse_fn_sign_args_e2: kitambulisho kilitarajiwa, (%{a}) imepatikana kwenye nafasi [%{b}]
+  guard_unexpected_input_end_e1: mwisho usiotarajiwa wa ingizo kwenye nafasi [%{a}]
+  guard_unexpected_input_end_e2: mwisho usiotarajiwa wa ingizo
+  pop_frame_e: hakuna fremu kwenye rafu ya kuibua
+  up_e: StackFrame.up inatarajiwa kupata hifadhi '%{a}' katika fremu lakini haikuweza patikana
+  exec_path_e: "Speak imekumbana na hitilafu ya mfumo: %{a}"
+  load_builtins_e1: "%{a} inachukua angalau hoja moja"
+  load_builtins_e2: "%{a} inachukua hoja moja pekee"
+  load_builtins_e3: "%{a} inaweza tu kuitwa kwa safu na aina za mlolongo"
+  load_builtins_e4: hoja za mod lazima ziwe ya milolongo halisi
+  load_builtins_e5: Stackframe uliopewa ni Sifuri

@@ -14,6 +14,3 @@ codegen-units = 1
 clap = { version = "4.0.32", features = ["derive"] }
 lazy_static = "1.4.0"
 core = {  path = "./core" }
-
-[features]
-language = []

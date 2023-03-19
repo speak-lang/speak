@@ -1,15 +1,13 @@
-use crate::lexer::Tok;
-
 use super::{
     error::{Err, ErrorReason},
     eval::value::Value,
     lexer::tokenize,
     log::log_debug,
     parser::{parse, Node},
-    LANGUAGE_CONF,
 };
-use std::fmt;
-use std::{collections::HashMap, fs, io::BufReader};
+use crate::{lexer::Tok, SPEAK};
+use rust_i18n::t;
+use std::{collections::HashMap, fmt, fs, io::BufReader};
 
 pub const MAX_PRINT_LEN: usize = 120;
 
@@ -64,7 +62,7 @@ impl StackFrame {
                 Ok(())
             }
             StackFrame::Nil => Err(Err {
-                message: "there is no frame in stack to pop".to_string(),
+                message: t!("errors.pop_frame_e"),
                 reason: ErrorReason::Assert,
             }),
         }
@@ -115,11 +113,8 @@ impl StackFrame {
         }
 
         Err(Err {
+            message: t!("errors.up_e", a = name),
             reason: ErrorReason::Assert,
-            message: format!(
-                "StackFrame.up expected to find variable '{}' in frame but did not",
-                name
-            ),
         })
     }
 
@@ -207,6 +202,8 @@ impl Context {
     /// Runs a Speak program defined by the buffer. This is the main way to invoke Speak programs
     /// from Rust.
     pub fn exec(&mut self, input: BufReader<&[u8]>) -> Result<(Value, Vec<Tok>, Vec<Node>), Err> {
+        rust_i18n::set_locale(&SPEAK);
+
         let mut tokens = Vec::new();
 
         let mut buf = input;
@@ -230,7 +227,7 @@ impl Context {
                 Ok(val)
             }
             Err(err) => Err(Err {
-                message: format!("Speak encountered a system error: {}", err),
+                message: t!("errors.exec_path_e", a = err),
                 reason: ErrorReason::System,
             }),
         }
@@ -248,7 +245,13 @@ pub type NativeFn = NativeFunction<fn(&mut StackFrame, &[Value]) -> Result<Value
 
 impl fmt::Debug for NativeFn {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "NativeFunction {{ name: {} }}", self.0)
+        write!(
+            f,
+            "{} {{ {}: {} }}",
+            t!("types.native_function"),
+            t!("misc.name"),
+            self.0
+        )
     }
 }
 
@@ -256,13 +259,14 @@ impl fmt::Debug for NativeFn {
 pub fn load_builtins(ctx: &mut Context) -> Result<(), Err> {
     match &mut ctx.frame {
         StackFrame::Frame { frame, .. } => {
+            let key = t!("builtins.print");
             frame.set(
-                LANGUAGE_CONF.print.clone(),
-                Value::NativeFunction(NativeFunction(LANGUAGE_CONF.print.clone(), |_, inputs| {
+                key.clone(),
+                Value::NativeFunction(NativeFunction(key, |_, inputs| {
                     if inputs.is_empty() {
                         return Err(Err {
+                            message: t!("errors.load_builtins_e1", a = t!("builtins.print")),
                             reason: ErrorReason::Runtime,
-                            message: format!("{} takes at least one argument", LANGUAGE_CONF.print),
                         });
                     }
 
@@ -284,40 +288,36 @@ pub fn load_builtins(ctx: &mut Context) -> Result<(), Err> {
                 })),
             );
 
+            let key = t!("builtins.println");
             frame.set(
-                LANGUAGE_CONF.println.clone(),
-                Value::NativeFunction(NativeFunction(
-                    LANGUAGE_CONF.println.clone(),
-                    |_, inputs| {
-                        println!(
-                            "{}",
-                            inputs[0].string().split("{}").enumerate().fold(
-                                String::new(),
-                                |acc, (i, x)| {
-                                    if i == inputs.len() - 1 {
-                                        acc + x
-                                    } else {
-                                        acc + x + &inputs[i + 1].string()
-                                    }
-                                },
-                            )
-                        );
+                key.clone(),
+                Value::NativeFunction(NativeFunction(key, |_, inputs| {
+                    println!(
+                        "{}",
+                        inputs[0].string().split("{}").enumerate().fold(
+                            String::new(),
+                            |acc, (i, x)| {
+                                if i == inputs.len() - 1 {
+                                    acc + x
+                                } else {
+                                    acc + x + &inputs[i + 1].string()
+                                }
+                            },
+                        )
+                    );
 
-                        Ok(Value::Empty)
-                    },
-                )),
+                    Ok(Value::Empty)
+                })),
             );
 
+            let key = t!("builtins.sprint");
             frame.set(
-                LANGUAGE_CONF.sprint.clone(),
-                Value::NativeFunction(NativeFunction(LANGUAGE_CONF.sprint.clone(), |_, inputs| {
+                key.clone(),
+                Value::NativeFunction(NativeFunction(key, |_, inputs| {
                     if inputs.is_empty() {
                         return Err(Err {
+                            message: t!("errors.load_builtins_e1", a = t!("builtins.sprint")),
                             reason: ErrorReason::Runtime,
-                            message: format!(
-                                "{} takes at least one argument",
-                                LANGUAGE_CONF.sprint
-                            ),
                         });
                     }
 
@@ -336,13 +336,14 @@ pub fn load_builtins(ctx: &mut Context) -> Result<(), Err> {
                 })),
             );
 
+            let key = t!("builtins.len");
             frame.set(
-                LANGUAGE_CONF.len.clone(),
-                Value::NativeFunction(NativeFunction(LANGUAGE_CONF.len.clone(), |_, inputs| {
+                key.clone(),
+                Value::NativeFunction(NativeFunction(key, |_, inputs| {
                     if inputs.len() != 1 {
                         return Err(Err {
+                            message: t!("errors.load_builtins_e2", a = t!("builtins.len")),
                             reason: ErrorReason::Runtime,
-                            message: format!("{} takes exactly one argument", LANGUAGE_CONF.len),
                         });
                     }
 
@@ -350,20 +351,18 @@ pub fn load_builtins(ctx: &mut Context) -> Result<(), Err> {
                         Value::String(val) => Ok(Value::Number(val.len() as f64)),
                         Value::Array(_, val) => Ok(Value::Number(val.len() as f64)),
                         _ => Err(Err {
-                            message: format!(
-                                "{} can only be called for array and string types",
-                                LANGUAGE_CONF.len
-                            ),
+                            message: t!("load_builtins_e3", a = t!("builtins.len")),
                             reason: ErrorReason::Runtime,
                         }),
                     }
                 })),
             );
 
+            let key = t!("builtins.mod");
             frame.set(
-                "mod".to_string(),
+                key.clone(),
                 Value::NativeFunction(NativeFunction(
-                    "mod".to_string(),
+                    key,
                     |_stack: &mut StackFrame, inputs: &[Value]| -> Result<Value, Err> {
                         for i in inputs {
                             match i {
@@ -373,8 +372,7 @@ pub fn load_builtins(ctx: &mut Context) -> Result<(), Err> {
                                 }
                                 _ => {
                                     return Err(Err {
-                                        message: "mod arguements must be string literals"
-                                            .to_string(),
+                                        message: t!("load_builtins_e4"),
                                         reason: ErrorReason::Runtime,
                                     });
                                 }
@@ -390,7 +388,7 @@ pub fn load_builtins(ctx: &mut Context) -> Result<(), Err> {
         }
 
         StackFrame::Nil => Err(Err {
-            message: "Stackframe provided is Nil".to_string(),
+            message: t!("errors.load_builtins_e5"),
             reason: ErrorReason::Assert,
         }),
     }
@@ -451,7 +449,7 @@ mod tests {
             Err(err) => panic!("{:?}", err),
         }
 
-        let cwd = env::current_dir().expect("there must be a wd");
+        let cwd = std::env::current_dir().expect("there must be a wd");
 
         match ctx_test.exec_path(
             cwd.join("samples/hello_world.spk")

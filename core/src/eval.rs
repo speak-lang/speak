@@ -1,3 +1,5 @@
+use rust_i18n::t;
+
 use self::{
     r#type::Type,
     value::{Function, Value},
@@ -11,7 +13,7 @@ use super::{
 use std::collections::HashMap;
 
 pub mod r#type {
-    use crate::LANGUAGE_CONF;
+    use rust_i18n::t;
 
     #[derive(Debug, PartialEq, Eq, Clone)]
     pub enum Type {
@@ -41,22 +43,22 @@ pub mod r#type {
     impl Type {
         pub fn string(&self) -> String {
             match self {
-                Type::Number => LANGUAGE_CONF.number_.clone(),
-                Type::Bool => LANGUAGE_CONF.bool_.clone(),
-                Type::String => LANGUAGE_CONF.string_.clone(),
-                Type::Object(obj) => format!("object: {}", obj),
+                Type::Number => t!("types.number"),
+                Type::Bool => t!("types.bool"),
+                Type::String => t!("types.string"),
+                Type::Object(obj) => format!("{}: {}", t!("types.object"), obj),
                 Type::Array(t) => format!("[]{}", t.string()),
-                Type::Function => "function".to_string(),
+                Type::Function => t!("types.function"),
                 Type::Empty => "()".to_string(),
             }
         }
 
         pub fn to_type(type_name: &str) -> Type {
             match type_name {
-                x if x == LANGUAGE_CONF.number_ => Type::Number,
-                x if x == LANGUAGE_CONF.bool_ => Type::Bool,
-                x if x == LANGUAGE_CONF.string_ => Type::String,
-                "function" => Type::Function,
+                x if x == t!("types.number") => Type::Number,
+                x if x == t!("types.bool") => Type::Bool,
+                x if x == t!("types.string") => Type::String,
+                x if x == t!("types.function") => Type::Function,
                 "()" => Type::Empty,
                 _ => Type::Object(type_name.to_string()), // If errorneous, fails at Runtime
             }
@@ -65,6 +67,8 @@ pub mod r#type {
 }
 
 pub mod value {
+    use rust_i18n::t;
+
     use super::r#type::Type;
     use crate::{
         parser::Node,
@@ -159,12 +163,18 @@ pub mod value {
                 Value::Number(value) => value.to_string(),
                 Value::Bool(value) => value.to_string(),
                 Value::String(value) => value.to_string(),
-                Value::Object { name, body } => format!("Object ({name}): {:?}", body),
-                Value::Array(t, value) => format!("Array ([]{}): {:?}", t.string(), value),
+                Value::Object { name, body } => {
+                    format!("{} ({name}): {:?}", t!("types.object"), body)
+                }
+                Value::Array(t, value) => {
+                    format!("{} ([]{}): {:?}", t!("types.array"), t.string(), value)
+                }
                 Value::Function(func) => func.string(),
-                Value::NativeFunction(func) => format!("Native Function ({})", func.0),
+                Value::NativeFunction(func) => {
+                    format!("{} ({})", t!("types.native_function"), func.0)
+                }
                 Value::FunctionCallThunk { func, .. } => {
-                    format!("Thunk of ({})", func.string())
+                    format!("Thunk {} ({})", t!("misc.of"), func.string())
                 }
                 Value::Empty => "".to_string(),
                 Value::Assignment(val) => val.string(),
@@ -190,11 +200,11 @@ impl Node {
                         let val = node.eval(stack, false)?;
                         if val.value_type() != value_type {
                             return Err(Err {
-                                message: format!(
-                                    "expected type ({}) but found ({}) at [{}]",
-                                    value_type.string(),
-                                    val.value_type().string(),
-                                    node.position().string()
+                                message: t!(
+                                    "errors.eval_e1",
+                                    a = value_type.string(),
+                                    b = val.value_type().string(),
+                                    c = node.position().string()
                                 ),
                                 reason: ErrorReason::Runtime,
                             });
@@ -223,7 +233,7 @@ impl Node {
                     return Ok(val.clone());
                 }
                 Err(Err {
-                    message: format!("{value} is not defined [{}]", position.string()),
+                    message: t!("errors.eval_e2", a = value, b = position.string()),
                     reason: ErrorReason::System,
                 })
             }
@@ -243,11 +253,7 @@ impl Node {
                             Ok(Value::Bool(*value))
                         }
                         _ => Err(Err {
-                            message: format!(
-                                "invalid unary operand {}, at {}",
-                                op.string(),
-                                position.string()
-                            ),
+                            message: t!("errors.eval_e3", a = op.string(), b = position.string()),
                             reason: ErrorReason::Runtime,
                         }),
                     }
@@ -265,29 +271,25 @@ impl Node {
                                 return mut_operand(operand);
                             }
                             return Err(Err {
-                                message: format!(
-                                    "{} is not defined [{}]",
-                                    value,
-                                    position.string()
-                                ),
+                                message: t!("errors.eval_e2", a = value, b = position.string()),
                                 reason: ErrorReason::System,
                             });
                         }
                         _ => Err(Err {
-                            message: format!(
-                                "invalid unary operand {}, at {}",
-                                operand.string(),
-                                position.string()
+                            message: t!(
+                                "errors.eval_e3",
+                                a = operand.string(),
+                                b = position.string()
                             ),
                             reason: ErrorReason::Syntax,
                         }),
                     },
 
                     _ => Err(Err {
-                        message: format!(
-                            "invalid unary operator {}, at {}",
-                            operator.string(),
-                            position.string()
+                        message: t!(
+                            "errors.eval_e4",
+                            a = operator.string(),
+                            b = position.string()
                         ),
                         reason: ErrorReason::Syntax,
                     }),
@@ -304,10 +306,10 @@ impl Node {
                         }
                     }
                     _ => Err(Err {
-                        message: format!(
-                            "could not parse {} as array value, at [{}]",
-                            operand.string(),
-                            operand.position().string()
+                        message: t!(
+                            "errors.eval_e5",
+                            a = operand.string(),
+                            b = operand.position().string()
                         ),
                         reason: ErrorReason::Runtime,
                     }),
@@ -341,16 +343,15 @@ impl Node {
                         ))
                     }
                     (None, None) => Err(Err {
-                        message: "slicing operation does not provied a start or an end index"
-                            .to_string(),
+                        message: t!("errors.eval_e6"),
                         reason: ErrorReason::Assert,
                     }),
                 },
                 _ => Err(Err {
-                    message: format!(
-                        "could not parse ({}) as array value, at [{}]",
-                        operand.string(),
-                        operand.position().string()
+                    message: t!(
+                        "errors.eval_e5",
+                        a = operand.string(),
+                        b = operand.position().string()
                     ),
                     reason: ErrorReason::Runtime,
                 }),
@@ -384,10 +385,10 @@ impl Node {
                         Ok(Value::Empty)
                     }
                     _ => Err(Err {
-                        message: format!(
-                            "expected identifier node but got {} at [{}]",
-                            sign.0.string(),
-                            sign.0.position().string()
+                        message: t!(
+                            "errors.eval_e7",
+                            a = sign.0.string(),
+                            b = sign.0.position().string()
                         ),
                         reason: ErrorReason::Assert,
                     }),
@@ -433,10 +434,10 @@ fn eval_if_expr_node(node: &Node, stack: &mut StackFrame, allow_thunk: bool) -> 
             Value::Bool(val) => ret(val),
             Value::String(str) => ret(str.is_empty()),
             _ => Err(Err {
-                message: format!(
-                    "the codition, ({}) at [{}], does not evaluate to bool value",
-                    condition.string(),
-                    node.position().string()
+                message: t!(
+                    "errors.eval_if_expr_node_e1",
+                    a = condition.string(),
+                    b = node.position().string()
                 ),
                 reason: ErrorReason::Runtime,
             }),
@@ -504,13 +505,13 @@ fn eval_binary_expr_node(node: &Node, stack: &mut StackFrame) -> Result<Value, E
                             }
                             _ => {
                                 return Err(Err {
-                                    message: format!(
-                                        "could not parse {} as array value, at [{}]",
-                                        operand.string(),
-                                        operand.position().string()
+                                    message: t!(
+                                        "errors.eval_e5",
+                                        a = operand.string(),
+                                        b = operand.position().string()
                                     ),
                                     reason: ErrorReason::Runtime,
-                                })
+                                });
                             }
                         }
                     }
@@ -532,7 +533,10 @@ fn eval_binary_expr_node(node: &Node, stack: &mut StackFrame) -> Result<Value, E
                                 Value::Object { name, body } => {
                                     match body.contains_key(&object_field) {
                                         true => {
-                                            let right_value = right_operand.as_ref().clone().eval(stack, false)?;
+                                            let right_value = right_operand
+                                                .as_ref()
+                                                .clone()
+                                                .eval(stack, false)?;
                                             body.insert(
                                                 object_field,
                                                 (right_value.value_type(), right_value),
@@ -543,32 +547,33 @@ fn eval_binary_expr_node(node: &Node, stack: &mut StackFrame) -> Result<Value, E
                                         }
                                         false => {
                                             return Err(Err {
+                                                message: t!(
+                                                    "errors.eval_binary_expr_node_e1",
+                                                    a = name,
+                                                    b = object.string(),
+                                                    c = l_position.string()
+                                                ),
                                                 reason: ErrorReason::Runtime,
-                                                message: format!(
-                                                "invalid property name {} of composite value {}, at [{}]",
-                                                name,
-                                                object.string(), l_position.string()
-                                            ),
-                                            })
+                                            });
                                         }
                                     }
                                 }
                                 _ => {
                                     return Err(Err {
-                                        reason: ErrorReason::System,
-                                        message: format!(
-                                            "composite value {} unknown",
-                                            object.string()
+                                        message: t!(
+                                            "erros.eval_binary_expr_node_e2",
+                                            a = object.string()
                                         ),
-                                    })
+                                        reason: ErrorReason::System,
+                                    });
                                 }
                             }
                         } else {
                             return Err(Err {
-                                message: format!(
-                                    "cannot assing value to non-identifier {}, at [{}]",
-                                    l_left_operand.string(),
-                                    left_operand.position().string(),
+                                message: t!(
+                                    "errors.eval_binary_expr_node_e3",
+                                    a = l_left_operand.string(),
+                                    b = left_operand.position().string()
                                 ),
                                 reason: ErrorReason::Runtime,
                             });
@@ -578,10 +583,10 @@ fn eval_binary_expr_node(node: &Node, stack: &mut StackFrame) -> Result<Value, E
                     _ => {
                         let mut left_operand = left_operand.as_ref().clone();
                         return Err(Err {
-                            message: format!(
-                                "cannot assing value to non-identifier {}, at [{}]",
-                                left_operand.eval(stack, false)?.string(),
-                                left_operand.position().string()
+                            message: t!(
+                                "errors.eval_binary_expr_node_e3",
+                                a = left_operand.eval(stack, false)?.string(),
+                                b = left_operand.position().string()
                             ),
                             reason: ErrorReason::Runtime,
                         });
@@ -591,8 +596,8 @@ fn eval_binary_expr_node(node: &Node, stack: &mut StackFrame) -> Result<Value, E
 
             Kind::AccessorOp => {
                 // left operand is stack name for object; right operand is the value
-                let mut left_operand = left_operand.as_ref().clone();
-                let object = left_operand.eval(stack, false)?;
+                let mut left_operand_ = left_operand.as_ref().clone();
+                let object = left_operand_.eval(stack, false)?;
                 let object_field = right_operand.string();
 
                 match &object {
@@ -604,20 +609,21 @@ fn eval_binary_expr_node(node: &Node, stack: &mut StackFrame) -> Result<Value, E
                         }
                         false => {
                             return Err(Err {
-                                reason: ErrorReason::Runtime,
-                                message: format!(
-                                    "invalid property name {} of composite value {}",
-                                    name,
-                                    object.string(),
+                                message: t!(
+                                    "errors.eval_binary_expr_node_e1",
+                                    a = name,
+                                    b = object.string(),
+                                    c = left_operand.position().string()
                                 ),
-                            })
+                                reason: ErrorReason::Runtime,
+                            });
                         }
                     },
                     _ => {
                         return Err(Err {
+                            message: t!("errors.eval_binary_expr_node_e2", a = object.string()),
                             reason: ErrorReason::System,
-                            message: format!("composite value {} unknown", object.string()),
-                        })
+                        });
                     }
                 }
             }
@@ -654,14 +660,14 @@ fn eval_binary_expr_node(node: &Node, stack: &mut StackFrame) -> Result<Value, E
 
                     _ => {
                         return Err(Err {
-                            message: format!(
-                                "values {} and {} do not support addition, at [{}]",
-                                left_value.string(),
-                                right_value.string(),
-                                position.string()
+                            message: t!(
+                                "errors.eval_binary_expr_node_e4",
+                                a = left_value.string(),
+                                b = right_value.string(),
+                                c = position.string()
                             ),
                             reason: ErrorReason::Syntax,
-                        })
+                        });
                     }
                 }
             }
@@ -677,14 +683,14 @@ fn eval_binary_expr_node(node: &Node, stack: &mut StackFrame) -> Result<Value, E
 
                     _ => {
                         return Err(Err {
-                            message: format!(
-                                "values {} and {} do not support subtraction, at [{}]",
-                                left_value.string(),
-                                right_value.string(),
-                                position.string()
+                            message: t!(
+                                "errors.eval_binary_expr_node_e5",
+                                a = left_value.string(),
+                                b = right_value.string(),
+                                c = position.string()
                             ),
                             reason: ErrorReason::Syntax,
-                        })
+                        });
                     }
                 }
             }
@@ -706,14 +712,14 @@ fn eval_binary_expr_node(node: &Node, stack: &mut StackFrame) -> Result<Value, E
 
                     _ => {
                         return Err(Err {
-                            message: format!(
-                                "values {} and {} do not support multiplication, at [{}]",
-                                left_value.string(),
-                                right_value.string(),
-                                position.string()
+                            message: t!(
+                                "errors.eval_binary_expr_node_e6",
+                                a = left_value.string(),
+                                b = right_value.string(),
+                                c = position.string()
                             ),
                             reason: ErrorReason::Syntax,
-                        })
+                        });
                     }
                 }
             }
@@ -725,9 +731,9 @@ fn eval_binary_expr_node(node: &Node, stack: &mut StackFrame) -> Result<Value, E
                         if let Value::Number(right_num) = right_value {
                             if right_num == 0f64 {
                                 return Err(Err {
-                                    message: format!(
-                                        "decision by zero error [{}]",
-                                        right_operand.position().string()
+                                    message: t!(
+                                        "errors.eval_binary_expr_node_e7",
+                                        a = right_operand.string()
                                     ),
                                     reason: ErrorReason::Runtime,
                                 });
@@ -738,14 +744,14 @@ fn eval_binary_expr_node(node: &Node, stack: &mut StackFrame) -> Result<Value, E
 
                     _ => {
                         return Err(Err {
-                            message: format!(
-                                "values {} and {} do not support division, at [{}]",
-                                left_value.string(),
-                                right_value.string(),
-                                position.string()
+                            message: t!(
+                                "errors.eval_binary_expr_node_e8",
+                                a = left_value.string(),
+                                b = right_value.string(),
+                                c = position.string()
                             ),
                             reason: ErrorReason::Syntax,
-                        })
+                        });
                     }
                 }
             }
@@ -757,9 +763,9 @@ fn eval_binary_expr_node(node: &Node, stack: &mut StackFrame) -> Result<Value, E
                         if let Value::Number(right_num) = right_value {
                             if right_num == 0f64 {
                                 return Err(Err {
-                                    message: format!(
-                                        "decision by zero error in modulus [{}]",
-                                        right_operand.position().string()
+                                    message: t!(
+                                        "errors.eval_binary_expr_node_e9",
+                                        a = right_operand.position().string()
                                     ),
                                     reason: ErrorReason::Runtime,
                                 });
@@ -770,13 +776,13 @@ fn eval_binary_expr_node(node: &Node, stack: &mut StackFrame) -> Result<Value, E
 
                     _ => {
                         return Err(Err {
-                            message: format!(
-                                "cannot take modulus of non-integer value {}, at [{}]",
-                                right_value.string(),
-                                left_operand.position().string()
+                            message: t!(
+                                "errors.eval_binary_expr_node_e10",
+                                a = right_value.string(),
+                                b = left_operand.position().string()
                             ),
                             reason: ErrorReason::Syntax,
-                        })
+                        });
                     }
                 }
             }
@@ -797,11 +803,11 @@ fn eval_binary_expr_node(node: &Node, stack: &mut StackFrame) -> Result<Value, E
                         }
 
                         return Err(Err {
-                            message: format!(
-                                "cannot take logical & of non-integer values {}, {} [{}]",
-                                left_value.string(),
-                                right_value.string(),
-                                position.string()
+                            message: t!(
+                                "errors.eval_binary_expr_node_e11",
+                                a = left_value.string(),
+                                b = right_value.string(),
+                                c = position.string()
                             ),
                             reason: ErrorReason::Runtime,
                         });
@@ -815,14 +821,14 @@ fn eval_binary_expr_node(node: &Node, stack: &mut StackFrame) -> Result<Value, E
 
                     _ => {
                         return Err(Err {
-                            message: format!(
-                                "values {} and {} do not support bitwise or logical &, at [{}]",
-                                left_value.string(),
-                                right_value.string(),
-                                position.string()
+                            message: t!(
+                                "errors.eval_binary_expr_node_e12",
+                                a = left_value.string(),
+                                b = right_value.string(),
+                                c = position.string()
                             ),
                             reason: ErrorReason::Syntax,
-                        })
+                        });
                     }
                 }
             }
@@ -843,11 +849,11 @@ fn eval_binary_expr_node(node: &Node, stack: &mut StackFrame) -> Result<Value, E
                         }
 
                         return Err(Err {
-                            message: format!(
-                                "cannot take logical | of non-integer values {}, {} [{}]",
-                                left_value.string(),
-                                right_value.string(),
-                                position.string()
+                            message: t!(
+                                "errors.eval_binary_expr_node_e13",
+                                a = left_value.string(),
+                                b = right_value.string(),
+                                c = position.string()
                             ),
                             reason: ErrorReason::Runtime,
                         });
@@ -861,14 +867,14 @@ fn eval_binary_expr_node(node: &Node, stack: &mut StackFrame) -> Result<Value, E
 
                     _ => {
                         return Err(Err {
-                            message: format!(
-                                "values {} and {} do not support bitwise or logical |, at [{}]",
-                                left_value.string(),
-                                right_value.string(),
-                                position.string()
+                            message: t!(
+                                "errors.eval_binary_expr_node_e14",
+                                a = left_value.string(),
+                                b = right_value.string(),
+                                c = position.string()
                             ),
                             reason: ErrorReason::Syntax,
-                        })
+                        });
                     }
                 }
             }
@@ -890,13 +896,13 @@ fn eval_binary_expr_node(node: &Node, stack: &mut StackFrame) -> Result<Value, E
 
                     _ => {
                         return Err(Err {
-                            reason: ErrorReason::Runtime,
-                            message: format!(
-                                "values {} and {} do not support comparison, at [{}]",
-                                left_value.string(),
-                                right_value.string(),
-                                position.string()
+                            message: t!(
+                                "errors.eval_binary_expr_node_e15",
+                                a = left_value.string(),
+                                b = right_value.string(),
+                                c = position.string()
                             ),
+                            reason: ErrorReason::Runtime,
                         });
                     }
                 }
@@ -919,13 +925,13 @@ fn eval_binary_expr_node(node: &Node, stack: &mut StackFrame) -> Result<Value, E
 
                     _ => {
                         return Err(Err {
-                            reason: ErrorReason::Runtime,
-                            message: format!(
-                                "values {} and {} do not support comparison, at [{}]",
-                                left_value.string(),
-                                right_value.string(),
-                                position.string()
+                            message: t!(
+                                "errors.eval_binary_expr_node_e15",
+                                a = left_value.string(),
+                                b = right_value.string(),
+                                c = position.string()
                             ),
+                            reason: ErrorReason::Runtime,
                         });
                     }
                 }
@@ -939,29 +945,29 @@ fn eval_binary_expr_node(node: &Node, stack: &mut StackFrame) -> Result<Value, E
             _ => {
                 return Err(Err {
                     reason: ErrorReason::Assert,
-                    message: format!("unknown binary operator {}", operator.string()),
+                    message: t!("errors.eval_binary_expr_node_e16", a = operator.string()),
                 })
             }
         }
 
         return Err(Err {
-            reason: ErrorReason::Runtime,
-            message: format!(
-                "cannot perform op, {}, on ({}) and ({}), at [{}]",
-                operator.string(),
-                left_operand.string(),
-                right_operand.string(),
-                node.position().string()
+            message: t!(
+                "errors.eval_binary_expr_node_e17",
+                a = operator.string(),
+                b = left_operand.string(),
+                c = right_operand.string(),
+                d = node.position().string()
             ),
+            reason: ErrorReason::Runtime,
         });
     }
     return Err(Err {
-        reason: ErrorReason::Assert,
-        message: format!(
-            "node, ({}), provided at [{}] is not a BinaryExprNode",
-            node.string(),
-            node.position().string()
+        message: t!(
+            "errors.eval_binary_expr_node_e18",
+            a = node.string(),
+            b = node.position().string()
         ),
+        reason: ErrorReason::Assert,
     });
 }
 
@@ -983,11 +989,12 @@ fn eval_speak_function(
                             let want_arg_type = args[i].value_type().string();
                             if want_arg_type != arg_type.string() && want_arg_type != "[]()" {
                                 return Err(Err {
-                                    message: format!(
-                                        "expected arg type of ({}) but got ({}), for {} arg to ({})",
-                                        arg_type.string(),
-                                        want_arg_type,
-                                        i +1, fn_value.string()
+                                    message: t!(
+                                        "errors.eval_speak_function_e1",
+                                        a = arg_type.string(),
+                                        b = want_arg_type,
+                                        c = i + 1,
+                                        d = fn_value.string()
                                     ),
                                     reason: ErrorReason::Runtime,
                                 });
@@ -997,11 +1004,11 @@ fn eval_speak_function(
                                 arg_vtable.insert(value.clone(), args[i].clone());
                             } else {
                                 return Err(Err {
-                                    reason: ErrorReason::Assert,
-                                    message: format!(
-                                        "could not resolve node ({}) as identifier",
-                                        arg_ident.string()
+                                    message: t!(
+                                        "errors.eval_speak_function_e2",
+                                        a = arg_ident.string()
                                     ),
+                                    reason: ErrorReason::Assert,
                                 });
                             }
                         }
@@ -1021,11 +1028,8 @@ fn eval_speak_function(
                     match sign.2.as_ref() {
                         Node::Identifier { .. } => Ok(res),
                         _ => Err(Err {
+                            message: t!("errors.eval_speak_function_e3", a = sign.2.string()),
                             reason: ErrorReason::Assert,
-                            message: format!(
-                                "expected the return type to be an identifier node but got ({})",
-                                sign.2.string(),
-                            ),
                         }),
                     }
                 }
@@ -1041,10 +1045,10 @@ fn eval_speak_function(
         Value::NativeFunction(func) => func.1(stack, args),
 
         _ => Err(Err {
-            message: format!(
-                "attempted to call a non-function value {} of type {}",
-                fn_value.string(),
-                fn_value.value_type().string()
+            message: t!(
+                "errors.eval_speak_function_e4",
+                a = fn_value.string(),
+                b = fn_value.value_type().string()
             ),
             reason: ErrorReason::Runtime,
         }),
@@ -1110,19 +1114,13 @@ fn unwrap_thunk(stack: &mut StackFrame, thunk: &mut Value) -> Result<Value, Err>
                             }
                         }
                         return Err(Err {
-                            message: format!(
-                                "the expected return type `{}` could not be constructed",
-                                sign.2.string()
-                            ),
+                            message: t!("errors.unwrap_thunk_e1", a = sign.2.string()),
                             reason: ErrorReason::Runtime,
                         });
                     }
                     _ => {
                         return Err(Err {
-                            message: format!(
-                                "expected function literal node value but got {}",
-                                defn.string()
-                            ),
+                            message: t!("errors.unwrap_thunk_e2", a = defn.string()),
                             reason: ErrorReason::Assert,
                         });
                     }
@@ -1130,7 +1128,7 @@ fn unwrap_thunk(stack: &mut StackFrame, thunk: &mut Value) -> Result<Value, Err>
             }
             _ => {
                 return Err(Err {
-                    message: format!("expected thunk value but got {}", thunk.string()),
+                    message: t!("errors.unwrap_thunk_e3", a = thunk.string()),
                     reason: ErrorReason::Assert,
                 });
             }
@@ -1149,25 +1147,23 @@ fn to_usize(num: &f64, pos: &Position) -> Result<usize, Err> {
     match is_intable(num) {
         true => Ok(*num as usize),
         false => Err(Err {
-            message: format!(
-                "value ({num}) cannot be used as index, at[{}]",
-                pos.string(),
-            ),
+            message: t!("errors.to_usize_e", a = num, b = pos.string()),
             reason: ErrorReason::Runtime,
         }),
     }
 }
 
+#[inline]
 fn to_number(node: &mut Node, stack: &mut StackFrame) -> Result<f64, Err> {
     match node.eval(stack, false)? {
         Value::Number(idx) => Ok(idx),
         _ => Err(Err {
-            reason: ErrorReason::Runtime,
-            message: format!(
-                "expected number, provided node is ({}) at [{}]",
-                node.string(),
-                node.position().string(),
+            message: t!(
+                "errors.to_number_e",
+                a = node.string(),
+                b = node.position().string()
             ),
+            reason: ErrorReason::Runtime,
         }),
     }
 }

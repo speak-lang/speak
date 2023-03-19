@@ -1,3 +1,4 @@
+use rust_i18n::t;
 use std::sync::mpsc::SendError;
 
 // ErrorReason enums represent possible errors that the Speak interpreter
@@ -12,12 +13,12 @@ pub enum ErrorReason {
 }
 
 impl ErrorReason {
-    fn string(&self) -> String {
+    pub fn string(&self) -> String {
         match self {
-            ErrorReason::Syntax => "Syntax error".to_string(),
-            ErrorReason::Runtime => "Runtime error".to_string(),
-            ErrorReason::System => "System error".to_string(),
-            ErrorReason::Assert => "Assertion error".to_string(),
+            ErrorReason::Syntax => t!("errors.const.syntax"),
+            ErrorReason::Runtime => t!("errors.const.runtime"),
+            ErrorReason::System => t!("errors.const.system"),
+            ErrorReason::Assert => t!("errors.const.assert"),
         }
     }
 }

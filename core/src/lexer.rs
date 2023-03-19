@@ -2,9 +2,9 @@ use super::{
     error::{Err, ErrorReason},
     eval::r#type::Type,
     log::log_debug,
-    LANGUAGE_CONF,
 };
 use regex::Regex;
+use rust_i18n::t;
 use std::io::{BufRead, BufReader};
 
 lazy_static! {
@@ -68,15 +68,15 @@ impl Kind {
     pub fn string(&self) -> String {
         match self {
             // Kind::Expr => "expression".to_string(),
-            Kind::Identifier => "identifier".to_string(),
+            Kind::Identifier => t!("misc.identifier"),
             Kind::EmptyIdentifier => "'_'".to_string(),
 
-            Kind::If => LANGUAGE_CONF.if_.clone(),
+            Kind::If => t!("literals.if"),
 
-            Kind::TrueLiteral => format!("{} literal", LANGUAGE_CONF.true_),
-            Kind::FalseLiteral => format!("{} literal", LANGUAGE_CONF.false_),
-            Kind::NumberLiteral => format!("{} literal", LANGUAGE_CONF.number_),
-            Kind::StringLiteral => format!("{} literal", LANGUAGE_CONF.string_),
+            Kind::TrueLiteral => format!("{} {}", t!("literals.true"), t!("misc.literal")),
+            Kind::FalseLiteral => format!("{} {}", t!("literals.false"), t!("misc.literal")),
+            Kind::NumberLiteral => format!("{} {}", t!("types.number"), t!("misc.literal")),
+            Kind::StringLiteral => format!("{} {}", t!("types.string"), t!("misc.literal")),
             Kind::EmptyLiteral => "()".to_string(),
 
             Kind::TypeName(t) => t.string(),
@@ -87,7 +87,7 @@ impl Kind {
             Kind::QuestionMark => "'?'".to_string(),
 
             Kind::NegationOp => "'~'".to_string(),
-            Kind::AssignOp => "is".to_string(),
+            Kind::AssignOp => t!("literals.is"),
             Kind::AccessorOp => "'.'".to_string(),
             Kind::EllipsisOp => "..".to_string(),
             Kind::AddOp => "'+'".to_string(),
@@ -258,9 +258,9 @@ pub fn tokenize(
                             },
                             None => {
                                 return Err(Err {
+                                    message: t!("errors.tokenize_e"),
                                     reason: ErrorReason::Syntax,
-                                    message: r#"missing trailing symbol '"'"#.to_string(),
-                                })
+                                });
                             }
                         };
                     }
@@ -492,19 +492,19 @@ fn commit_arbitrary(
     };
 
     match entry.as_str() {
-        x if x == LANGUAGE_CONF.number_ => commit_token(Kind::TypeName(Type::Number), tokens),
+        x if x == t!("types.number") => commit_token(Kind::TypeName(Type::Number), tokens),
 
-        x if x == LANGUAGE_CONF.bool_ => commit_token(Kind::TypeName(Type::Bool), tokens),
+        x if x == t!("types.bool") => commit_token(Kind::TypeName(Type::Bool), tokens),
 
-        x if x == LANGUAGE_CONF.string_ => commit_token(Kind::TypeName(Type::String), tokens),
+        x if x == t!("types.string") => commit_token(Kind::TypeName(Type::String), tokens),
 
-        x if x == LANGUAGE_CONF.true_ => commit_token(Kind::TrueLiteral, tokens),
+        x if x == t!("literals.true") => commit_token(Kind::TrueLiteral, tokens),
 
-        x if x == LANGUAGE_CONF.false_ => commit_token(Kind::FalseLiteral, tokens),
+        x if x == t!("literals.false") => commit_token(Kind::FalseLiteral, tokens),
 
-        x if x == LANGUAGE_CONF.if_ => commit_token(Kind::If, tokens),
+        x if x == t!("literals.if") => commit_token(Kind::If, tokens),
 
-        x if x == LANGUAGE_CONF.is_ => commit_token(Kind::AssignOp, tokens),
+        x if x == t!("literals.is") => commit_token(Kind::AssignOp, tokens),
 
         "->" => commit_token(Kind::FunctionArrow, tokens),
 
@@ -597,8 +597,8 @@ fn commit_arbitrary(
                     Ok(())
                 }
                 false => Err(Err {
+                    message: t!("errors.commit_arbitrary_e", a = entry),
                     reason: ErrorReason::Syntax,
-                    message: format!("invalid identifier: (\"{}\")", entry),
                 }),
             }
         }

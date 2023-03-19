@@ -1,3 +1,5 @@
+use rust_i18n::t;
+
 use super::{
     error::{Err, ErrorReason},
     eval::r#type::Type,
@@ -85,7 +87,8 @@ impl Node {
             Node::StringLiteral { value, .. } => value.clone(),
             Node::BoolLiteral { value, .. } => value.to_string(),
             Node::ArrayLiteral { value, .. } => format!(
-                "Array ([{}])",
+                "{} ([{}])",
+                t!("types.array"),
                 if value.is_empty() {
                     Type::Empty.string()
                 } else {
@@ -100,7 +103,8 @@ impl Node {
             ),
             Node::ObjectLiteral { name, value, .. } => {
                 format!(
-                    "Object ({}) {{\n{}}}",
+                    "{} ({}) {{\n{}}}",
+                    t!("types.object"),
                     name,
                     value
                         .iter()
@@ -164,7 +168,7 @@ impl Node {
                     args.push_str(&format!("({})", arg.string()));
                     args.push_str(", ");
                 }
-                format!("Call ({}) on ({})", function.string(), args)
+                format!("{} ({}) on ({})", t!("misc.call"), function.string(), args)
             }
             Node::FunctionLiteral {
                 sign: signature, ..
@@ -186,7 +190,12 @@ impl Node {
                 on_false,
                 position,
             } => {
-                let mut s = format!("If ({}): ({})", position.string(), condition.string());
+                let mut s = format!(
+                    "{} ({}): ({})",
+                    t!("literals.if"),
+                    position.string(),
+                    condition.string()
+                );
                 if let Some(true_clause) = &on_true {
                     s.push_str(&format!("? ({})", true_clause.string()));
                 }
@@ -221,7 +230,7 @@ impl Node {
 
 /// Parses a stream of tokens into AST [`_Node`]s.
 /// This implementation is a recursive descent parser.
-pub fn parse(tokens: &[Tok], nodes_chan: &mut Vec<Node>, debug_parser: bool) -> Result<(), Err> {
+pub fn parse(tokens: &[Tok], nodes: &mut Vec<Node>, debug_parser: bool) -> Result<(), Err> {
     let (mut idx, length) = (0, tokens.len());
 
     while idx < length {
@@ -231,7 +240,7 @@ pub fn parse(tokens: &[Tok], nodes_chan: &mut Vec<Node>, debug_parser: bool) -> 
         }
 
         idx += consumed;
-        nodes_chan.push(node);
+        nodes.push(node);
     }
     Ok(())
 }
@@ -316,10 +325,10 @@ fn parse_expression(
         _ => match parsing_fn_args {
             true => Ok((atom, idx - 1)),
             false => Err(Err {
-                message: format!(
-                    "unexpected token {} at {}, following an expression",
-                    next_tok.kind.string(),
-                    next_tok.position.string()
+                message: t!(
+                    "errors.parse_expression_e",
+                    a = next_tok.kind.string(),
+                    b = next_tok.position.string()
                 ),
                 reason: ErrorReason::Syntax,
             }),
@@ -502,13 +511,13 @@ fn parse_atom(
 
         _ => {
             return Err(Err {
-                message: format!(
-                    "unexpected start of atom, found ({}) at [{}]",
-                    tok.kind.string(),
-                    tok.position.string()
+                message: t!(
+                    "errors.parse_atom_e",
+                    a = tok.kind.string(),
+                    b = tok.position.string()
                 ),
                 reason: ErrorReason::Syntax,
-            })
+            });
         }
     }
 
@@ -550,9 +559,9 @@ fn parse_capsulated_expr(
     match tokens[idx].kind {
         Kind::RightParen => Ok((atom, idx + 1)), // +1 for the RightParen
         _ => Err(Err {
-            message: format!(
-                "the expression expected ')' after [{}]",
-                tokens[idx - 1].string()
+            message: t!(
+                "errors.parse_capsulated_expr_e",
+                a = tokens[idx - 1].string()
             ),
             reason: ErrorReason::Syntax,
         }),
@@ -632,10 +641,10 @@ fn parse_array_op(
                 idx + 1, // +1 for Kind::RightBracket consumed
             )),
             _ => Err(Err {
-                message: format!(
-                    "expected right bracket, found ({}) at [{}]",
-                    tokens[idx].string(),
-                    tokens[idx].position.string(),
+                message: t!(
+                    "errors.parse_array_op_e1",
+                    a = tokens[idx].string(),
+                    b = tokens[idx].position.string(),
                 ),
                 reason: ErrorReason::Syntax,
             }),
@@ -676,12 +685,12 @@ fn parse_array_op(
                     ))
                 }
                 _ => Err(Err {
-                    reason: ErrorReason::Syntax,
-                    message: format!(
-                        "expected EllipsisOp or RightBracket, found ({}) at [{}]",
-                        tokens[idx].string(),
-                        tokens[idx].position.string()
+                    message: t!(
+                        "errors.parse_array_op_e2",
+                        a = tokens[idx].string(),
+                        b = tokens[idx].position.string()
                     ),
+                    reason: ErrorReason::Syntax,
                 }),
             }
         }
@@ -703,11 +712,11 @@ fn parse_object_literal(tokens: &[Tok], name: Node) -> Result<(Node, usize), Err
                 position: tokens[idx].position.clone(),
             }),
             _ => Err(Err {
-                reason: ErrorReason::Syntax,
-                message: format!(
-                    "parsing objected literal, expected identifier at [{}]",
-                    tokens[idx].position.string()
+                message: t!(
+                    "errors.parse_object_literal_e1",
+                    a = tokens[idx].position.string()
                 ),
+                reason: ErrorReason::Syntax,
             }),
         }?;
         idx += 1; // +1 for Kind::Identifier consumed
@@ -739,20 +748,20 @@ fn parse_object_literal(tokens: &[Tok], name: Node) -> Result<(Node, usize), Err
                     }
                     Kind::RightBrace => Ok(field_value),
                     _ => Err(Err {
-                        reason: ErrorReason::Syntax,
-                        message: format!(
-                            "parsing objected literal, expected identifier at [{}]",
-                            tokens[idx].position.string()
+                        message: t!(
+                            "errors.parse_object_literal_e1",
+                            a = tokens[idx].position.string()
                         ),
+                        reason: ErrorReason::Syntax,
                     }),
                 }
             }
             _ => Err(Err {
-                reason: ErrorReason::Syntax,
-                message: format!(
-                    "parsing objected literal, expected identifier/separator at [{}]",
-                    tokens[idx].position.string(),
+                message: t!(
+                    "errors.parse_object_literal_e2",
+                    a = tokens[idx].position.string(),
                 ),
+                reason: ErrorReason::Syntax,
             }),
         }?;
 
@@ -840,9 +849,9 @@ fn parse_function_call(
 fn parse_function_literal(tokens: &[Tok], col_bound: usize) -> Result<(Node, usize), Err> {
     if col_bound > 1 && tokens[0].position.column <= col_bound {
         return Err(Err {
-            message: format!(
-                "the function literal is declared at [{}] and should be nested as a closure",
-                tokens[0].position.string()
+            message: t!(
+                "errors.parse_function_literal_e1",
+                a = tokens[0].position.string()
             ),
             reason: ErrorReason::Syntax,
         });
@@ -889,10 +898,10 @@ fn parse_function_literal(tokens: &[Tok], col_bound: usize) -> Result<(Node, usi
             position: tokens[idx].position.clone(),
         }),
         _ => Err(Err {
-            message: format!(
-                "expected a type, found ({}) at [{}]",
-                tokens[idx].kind.string(),
-                tokens[idx].position.string()
+            message: t!(
+                "errors.parse_function_literal_e2",
+                a = tokens[idx].kind.string(),
+                b = tokens[idx].position.string()
             ),
             reason: ErrorReason::Syntax,
         }),
@@ -939,9 +948,9 @@ fn parse_fn_sign_args(tokens: &[Tok]) -> Result<(Vec<(Node, Node)>, usize), Err>
             Kind::TypeName(x) => {
                 if arg_types.len() > args.len() {
                     return Err(Err {
-                        message: format!(
-                            "the signature parsed more types than args at [{}]",
-                            tokens[idx].position.string()
+                        message: t!(
+                            "errors.parse_fn_sign_args_e1",
+                            a = tokens[idx].position.string()
                         ),
                         reason: ErrorReason::Syntax,
                     });
@@ -958,10 +967,10 @@ fn parse_fn_sign_args(tokens: &[Tok]) -> Result<(Vec<(Node, Node)>, usize), Err>
 
             _ => {
                 return Err(Err {
-                    message: format!(
-                        "expected identifier, found ({}) at [{}]",
-                        tokens[idx].string(),
-                        tokens[idx].position.string()
+                    message: t!(
+                        "errors.parse_fn_sign_args_e2",
+                        a = tokens[idx].string(),
+                        b = tokens[idx].position.string()
                     ),
                     reason: ErrorReason::Syntax,
                 });
@@ -977,16 +986,16 @@ fn guard_unexpected_input_end(tokens: &[Tok], idx: usize) -> Result<(), Err> {
     if idx >= tokens.len() {
         if tokens.is_empty() {
             return Err(Err {
-                message: format!(
-                    "unexpected end of input at {}",
-                    tokens[tokens.len() - 1].kind.string()
+                message: t!(
+                    "errors.guard_unexpected_input_end_e1",
+                    a = tokens[tokens.len() - 1].kind.string()
                 ),
                 reason: ErrorReason::Syntax,
             });
         }
 
         return Err(Err {
-            message: "unexpected end of input".to_string(),
+            message: t!("errors.guard_unexpected_input_end_e2"),
             reason: ErrorReason::Syntax,
         });
     }
