@@ -5,7 +5,7 @@ use super::{
     log::log_debug,
     parser::{parse, Node},
 };
-use crate::{lexer::Tok, SPEAK};
+use crate::lexer::Tok;
 use rust_i18n::t;
 use std::{collections::HashMap, fmt, fs, io::BufReader};
 
@@ -201,8 +201,12 @@ impl Context {
 
     /// Runs a Speak program defined by the buffer. This is the main way to invoke Speak programs
     /// from Rust.
-    pub fn exec(&mut self, input: BufReader<&[u8]>) -> Result<(Value, Vec<Tok>, Vec<Node>), Err> {
-        rust_i18n::set_locale(&SPEAK);
+    pub fn exec(
+        &mut self,
+        speak: &str,
+        input: BufReader<&[u8]>,
+    ) -> Result<(Value, Vec<Tok>, Vec<Node>), Err> {
+        rust_i18n::set_locale(speak);
 
         let mut tokens = Vec::new();
 
@@ -219,11 +223,11 @@ impl Context {
     }
 
     /// Allows to Exec() a program file in a given context.
-    pub fn exec_path(&mut self, path: String) -> Result<Value, Err> {
+    pub fn exec_path(&mut self, speak: &str, path: &str) -> Result<Value, Err> {
         match fs::read(path.clone()) {
             Ok(data) => {
-                self.file = Some(path);
-                let (val, _, _) = self.exec(BufReader::new(&data[..]))?;
+                self.file = Some(path.to_string());
+                let (val, _, _) = self.exec(speak, BufReader::new(&data[..]))?;
                 Ok(val)
             }
             Err(err) => Err(Err {
@@ -442,7 +446,7 @@ mod tests {
         }
 
         let buf_reader = BufReader::new(r#"sprint "Hello World!""#.as_bytes());
-        match ctx_test.exec(buf_reader) {
+        match ctx_test.exec("en", buf_reader) {
             Ok(val) => {
                 println!("{:?}\ndone!", val)
             }
@@ -451,12 +455,7 @@ mod tests {
 
         let cwd = std::env::current_dir().expect("there must be a wd");
 
-        match ctx_test.exec_path(
-            cwd.join("samples/hello_world.spk")
-                .to_str()
-                .unwrap()
-                .to_string(),
-        ) {
+        match ctx_test.exec_path("en", cwd.join("samples/hello_world.spk").to_str().expect("this path exists")) {
             Ok(val) => {
                 println!("{:?}", val)
             }
