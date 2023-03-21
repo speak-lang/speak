@@ -134,13 +134,11 @@ You can run Speak in 3 ways:
 ## Building locally.
 To build locally, the [Rust toolchain](https://www.rust-lang.org/learn/get-started) must be installed.
 
-There are makefile recipes.
-1. For the `Swahili interpreter`. Run:
-```
-make swahili
-```
-2. For the `English interpreter`, default. Run:
+Run:
 ```
 make
 ```
-
+The default interpreter assumes the English language. To run the Swahili variant, create a `SPEAK` environment variable and set it to `sw` before interactimg with the interprerter. For example:
+```
+SPEAK="sw" speak repl
+```
