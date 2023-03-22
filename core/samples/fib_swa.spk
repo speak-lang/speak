@@ -5,10 +5,10 @@ fib: n nambari -> nambari
     (fib n - 1) + (fib n - 2)
 
 // utekelezaji wa kumbukumbu
+kumbukumbu ni [0,1]
 fibKumbukumbu: n nambari -> nambari
-    kumbukumbu ni [0,1]
     kama kumbukumbu[n] = () ? kumbukumbu[n] ni (fibKumbukumbu n -1) + (fibKumbukumbu n - 2)
     kumbukumbu[n]
 
-andika_laini "Matokeo ya utekelezaji jinga: {}" (fib 25)
+andika_laini "Matokeo ya utekelezaji jinga: {}" (fib 20)
 andika "Matokeo ya utekelezaji wa kumbukumbu: {}" (fibKumbukumbu 20)

@@ -7,11 +7,10 @@ fib: n number -> number
     (fib n - 1) + (fib n - 2)
 
 // memoized implementation
+memo is [0, 1]
 fibMemo: n number -> number
-    memo is [0, 1]
     if memo[n] = () ? memo[n] is (fibMemo n - 1) + (fibMemo n - 2)
     memo[n]
-
 
 println "Naive solution: {}" (fib 20)
 print "Dynamic solution: {}" (fibMemo 20)

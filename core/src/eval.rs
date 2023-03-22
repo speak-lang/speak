@@ -1,5 +1,3 @@
-use rust_i18n::t;
-
 use self::{
     r#type::Type,
     value::{Function, Value},
@@ -10,6 +8,7 @@ use super::{
     parser::Node,
     runtime::{StackFrame, VTable},
 };
+use rust_i18n::t;
 use std::collections::HashMap;
 
 pub mod r#type {
@@ -478,14 +477,19 @@ fn eval_binary_expr_node(node: &Node, stack: &mut StackFrame) -> Result<Value, E
                         // right operand node must evaluate to a value
                         let mut r = right_operand.as_ref().clone();
                         let right_value = r.eval(stack, false)?;
-                        stack.set(value.clone(), right_value.clone());
+
+                        // try make an update first, if fails push value to stack
+                        if let Err(_) = stack.up(value.clone(), &right_value) {
+                            stack.set(value.clone(), right_value.clone());
+                        }
+
                         return Ok(Value::Assignment(Box::new(right_value)));
                     }
 
                     Node::IndexingOp { operand, index, .. } => {
                         let mut operand = operand.as_ref().clone();
-                        match &mut operand.eval(stack, false)? {
-                            Value::Array(_, vals) => {
+                        match operand.eval(stack, false)? {
+                            Value::Array(arr_type, mut vals) => {
                                 let mut index = index.as_ref().clone();
                                 let idx =
                                     to_usize(&(to_number(&mut index, stack)?), index.position())?;
@@ -500,6 +504,9 @@ fn eval_binary_expr_node(node: &Node, stack: &mut StackFrame) -> Result<Value, E
                                 let right_value = r.eval(stack, false)?;
 
                                 vals[idx] = right_value.clone();
+
+                                // update stack
+                                stack.up(operand.string(), &Value::Array(arr_type, vals))?;
 
                                 return Ok(Value::Assignment(Box::new(right_value)));
                             }
@@ -1080,7 +1087,7 @@ fn unwrap_thunk(stack: &mut StackFrame, thunk: &mut Value) -> Result<Value, Err>
                                 _ => {
                                     // if there's a next evaluation, assignment does not count
                                     if let Value::Assignment(_) = val {
-                                        if i + 1 != body.len() {
+                                        if i + 1 < body.len() {
                                             continue;
                                         }
                                     }

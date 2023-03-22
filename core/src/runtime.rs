@@ -355,7 +355,7 @@ pub fn load_builtins(ctx: &mut Context) -> Result<(), Err> {
                         Value::String(val) => Ok(Value::Number(val.len() as f64)),
                         Value::Array(_, val) => Ok(Value::Number(val.len() as f64)),
                         _ => Err(Err {
-                            message: t!("load_builtins_e3", a = t!("builtins.len")),
+                            message: t!("errors.load_builtins_e3", a = t!("builtins.len")),
                             reason: ErrorReason::Runtime,
                         }),
                     }
@@ -376,7 +376,7 @@ pub fn load_builtins(ctx: &mut Context) -> Result<(), Err> {
                                 }
                                 _ => {
                                     return Err(Err {
-                                        message: t!("load_builtins_e4"),
+                                        message: t!("errors.load_builtins_e4"),
                                         reason: ErrorReason::Runtime,
                                     });
                                 }
@@ -455,7 +455,12 @@ mod tests {
 
         let cwd = std::env::current_dir().expect("there must be a wd");
 
-        match ctx_test.exec_path("en", cwd.join("samples/hello_world.spk").to_str().expect("this path exists")) {
+        match ctx_test.exec_path(
+            "en",
+            cwd.join("samples/hello_world.spk")
+                .to_str()
+                .expect("this path exists"),
+        ) {
             Ok(val) => {
                 println!("{:?}", val)
             }

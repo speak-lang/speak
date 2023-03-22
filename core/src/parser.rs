@@ -173,7 +173,10 @@ impl Node {
             Node::FunctionLiteral {
                 sign: signature, ..
             } => format!(
-                "FunctionLiteral: {} -> {}",
+                "{} {} '{}: {} -> {}'",
+                t!("types.function"),
+                t!("misc.literal"),
+                signature.0.string(),
                 signature
                     .1
                     .iter()
