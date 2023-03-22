@@ -535,46 +535,79 @@ fn eval_binary_expr_node(node: &Node, stack: &mut StackFrame) -> Result<Value, E
                             // right operand is the field value
                             let object_field = l_right_operand.string();
 
-                            // mutate field value
-                            match &mut object.clone() {
-                                Value::Object { name, body } => {
-                                    match body.contains_key(&object_field) {
-                                        true => {
-                                            let right_value = right_operand
-                                                .as_ref()
-                                                .clone()
-                                                .eval(stack, false)?;
-                                            body.insert(
-                                                object_field,
-                                                (right_value.value_type(), right_value),
-                                            );
+                            fn update_field(
+                                stack: &mut StackFrame,
+                                object: Value,
+                                object_field: String,
+                                l_left_operand: &Box<Node>,
+                                l_position: &Position,
+                                right_operand: &Box<Node>,
+                            ) -> Result<Value, Err> {
+                                // mutate field value
+                                match &mut object.clone() {
+                                    Value::Object { name, body } => {
+                                        match body.contains_key(&object_field) {
+                                            true => {
+                                                let right_value = right_operand
+                                                    .as_ref()
+                                                    .clone()
+                                                    .eval(stack, false)?;
+                                                body.insert(
+                                                    object_field,
+                                                    (right_value.value_type(), right_value),
+                                                );
 
-                                            stack.up(name.clone(), &object)?;
-                                            return Ok(object);
-                                        }
-                                        false => {
-                                            return Err(Err {
-                                                message: t!(
-                                                    "errors.eval_binary_expr_node_e1",
-                                                    a = name,
-                                                    b = object.string(),
-                                                    c = l_position.string()
-                                                ),
-                                                reason: ErrorReason::Runtime,
-                                            });
+                                                let obj = Value::Object {
+                                                    name: name.to_string(),
+                                                    body: body.clone(),
+                                                };
+
+                                                stack.up(l_left_operand.string(), &obj)?;
+                                                return Ok(obj);
+                                            }
+                                            false => {
+                                                return Err(Err {
+                                                    message: t!(
+                                                        "errors.eval_binary_expr_node_e1",
+                                                        a = name,
+                                                        b = object.string(),
+                                                        c = l_position.string()
+                                                    ),
+                                                    reason: ErrorReason::Runtime,
+                                                });
+                                            }
                                         }
                                     }
-                                }
-                                _ => {
-                                    return Err(Err {
-                                        message: t!(
-                                            "erros.eval_binary_expr_node_e2",
-                                            a = object.string()
-                                        ),
-                                        reason: ErrorReason::System,
-                                    });
+
+                                    Value::Assignment(val) => update_field(
+                                        stack,
+                                        val.as_ref().clone(),
+                                        object_field,
+                                        l_left_operand,
+                                        l_position,
+                                        right_operand,
+                                    ),
+
+                                    _ => {
+                                        return Err(Err {
+                                            message: t!(
+                                                "errors.eval_binary_expr_node_e2",
+                                                a = object.string()
+                                            ),
+                                            reason: ErrorReason::System,
+                                        });
+                                    }
                                 }
                             }
+
+                            return update_field(
+                                stack,
+                                object,
+                                object_field,
+                                l_left_operand,
+                                l_position,
+                                right_operand,
+                            );
                         } else {
                             return Err(Err {
                                 message: t!(
@@ -603,36 +636,48 @@ fn eval_binary_expr_node(node: &Node, stack: &mut StackFrame) -> Result<Value, E
 
             Kind::AccessorOp => {
                 // left operand is stack name for object; right operand is the value
-                let mut left_operand_ = left_operand.as_ref().clone();
-                let object = left_operand_.eval(stack, false)?;
+                let object = left_operand.as_ref().clone().eval(stack, false)?;
                 let object_field = right_operand.string();
 
-                match &object {
-                    Value::Object { name, body } => match body.contains_key(&object_field) {
-                        true => {
-                            let (_, val) =
-                                body.get(&object_field).expect("check done, value exists");
-                            return Ok(val.clone());
+                fn get_field(
+                    object: Value,
+                    object_field: String,
+                    left_operand: &Box<Node>,
+                ) -> Result<Value, Err> {
+                    match &object {
+                        Value::Object { name, body } => match body.contains_key(&object_field) {
+                            true => {
+                                let (_, val) =
+                                    body.get(&object_field).expect("check done, value exists");
+                                return Ok(val.clone());
+                            }
+                            false => {
+                                return Err(Err {
+                                    message: t!(
+                                        "errors.eval_binary_expr_node_e1",
+                                        a = name,
+                                        b = object.string(),
+                                        c = left_operand.position().string()
+                                    ),
+                                    reason: ErrorReason::Runtime,
+                                });
+                            }
+                        },
+
+                        Value::Assignment(val) => {
+                            get_field(val.as_ref().clone(), object_field, left_operand)
                         }
-                        false => {
+
+                        _ => {
                             return Err(Err {
-                                message: t!(
-                                    "errors.eval_binary_expr_node_e1",
-                                    a = name,
-                                    b = object.string(),
-                                    c = left_operand.position().string()
-                                ),
-                                reason: ErrorReason::Runtime,
+                                message: t!("errors.eval_binary_expr_node_e2", a = object.string()),
+                                reason: ErrorReason::System,
                             });
                         }
-                    },
-                    _ => {
-                        return Err(Err {
-                            message: t!("errors.eval_binary_expr_node_e2", a = object.string()),
-                            reason: ErrorReason::System,
-                        });
                     }
                 }
+
+                return get_field(object, object_field, left_operand);
             }
 
             Kind::AddOp => {

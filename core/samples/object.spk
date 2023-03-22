@@ -8,9 +8,8 @@ create_person: name string -> Person
         sex,
         age _age,
     }
-    x.age = x.age -2
-    x
 
 x is create_person "OtherGuy"
 println x.name
+x.age is (x.age -2)
 println x
