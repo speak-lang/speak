@@ -228,7 +228,7 @@ impl Node {
     }
 }
 
-/// Parses a stream of tokens into AST [`_Node`]s.
+/// Parses a stream of tokens into AST [`Node`]s.
 /// This implementation is a recursive descent parser.
 pub fn parse(tokens: &[Tok], nodes: &mut Vec<Node>, debug_parser: bool) -> Result<(), Err> {
     let (mut idx, length) = (0, tokens.len());
@@ -930,7 +930,7 @@ fn parse_function_literal(tokens: &[Tok], col_bound: usize) -> Result<(Node, usi
     ))
 }
 
-/// takes a token stream of the function signature, parses it and returns the function arguments signature.
+/// Takes a token stream of the function signature, parses it and returns the function arguments signature.
 fn parse_fn_sign_args(tokens: &[Tok]) -> Result<(Vec<(Node, Node)>, usize), Err> {
     //  fname, lastname string -> string
     // i number, s int -> string

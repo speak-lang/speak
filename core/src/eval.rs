@@ -1055,7 +1055,7 @@ fn eval_speak_function(
     }
 }
 
-// Expands out a recursive structure of thunks into a flat for loop control structure
+// Expands out a recursive structure of thunks into a flat for loop control structure.
 fn unwrap_thunk(stack: &mut StackFrame, thunk: &mut Value) -> Result<Value, Err> {
     let mut is_thunk = true;
     let mut stacks_added = 0;

@@ -148,9 +148,9 @@ impl StackFrame {
 /// imports, call stack, and cwd (working directory).
 #[derive(Debug)]
 pub struct Context {
-    /// The currently executing file's path, if any
+    /// The currently executing file's path, if any.
     pub file: Option<String>,
-    /// Frame represents the Context's global heap
+    /// Frame represents the Context's global heap.
     pub frame: StackFrame,
 
     debug_lex: bool,
@@ -199,8 +199,8 @@ impl Context {
         Ok(last_val)
     }
 
-    /// Runs a Speak program defined by the buffer. This is the main way to invoke Speak programs
-    /// from Rust.
+    /// Runs a Speak program defined by the buffer.
+    /// This is the main way to invoke Speak programs from Rust.
     pub fn exec(
         &mut self,
         speak: &str,
@@ -238,8 +238,8 @@ impl Context {
     }
 }
 
-/// Native function are convenience functions that come with the interpreter; an example is the
-/// `println` function
+/// Native function are convenience functions that come with the interpreter;
+/// an example is the `println` function
 #[derive(Clone)]
 pub struct NativeFunction<F: Fn(&mut StackFrame, &[Value]) -> Result<Value, Err>>(
     pub String,
