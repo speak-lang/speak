@@ -5,5 +5,5 @@ fizzbuzz: n number -> string
     if n % 5 = 0 ? "Buzz"
     sprint n
 
-// call with 100
+// call with 45
 print "fizzbuzz result for {} is {}" 45 (fizzbuzz 45)

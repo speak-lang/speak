@@ -4,6 +4,5 @@ fizzbuzz: n nambari -> mlolongo
     kama n % 5 = 0 ? "Buzz"
     mlolongo_andika n
 
-// ita na nambari 100
-andika_laini "matokeo ya fizzbuzz kwa {} ni {}" 100 (fizzbuzz 100)
-andika "matokeo ya fizzbuzz kwa {} ni {} yenyewe" 7 (fizzbuzz 7)
+// ita na nambari 45
+andika "matokeo ya fizzbuzz kwa {} ni {} yenyewe" 45 (fizzbuzz 45)

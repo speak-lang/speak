@@ -769,7 +769,7 @@ mod test {
         // tokenize function call on number, as identitier and numberliteral
         {
             tokens.clear();
-            buf_reader = BufReader::new("sprint 10000-10".as_bytes());
+            buf_reader = BufReader::new("sprint 10_000-10".as_bytes());
             if let Err(err) = tokenize(&mut buf_reader, &mut tokens, true) {
                 panic!("error: {}", err.message);
             }
