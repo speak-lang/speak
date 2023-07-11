@@ -8,4 +8,4 @@ pub mod runtime;
 #[macro_use]
 extern crate lazy_static;
 
-rust_i18n::i18n!("speak-locales");
+rust_i18n::i18n!("locales");

@@ -802,7 +802,7 @@ mod test {
                     num: None,
                     position: Position {
                         line: 1,
-                        column: 13
+                        column: 14
                     }
                 }
             );
@@ -815,7 +815,7 @@ mod test {
                     num: Some(10.0),
                     position: Position {
                         line: 1,
-                        column: 14
+                        column: 15
                     }
                 }
             );
