@@ -32,7 +32,9 @@ pub enum Node {
         value: Vec<(String, Node)>,
         position: Position,
     },
-    EmptyLiteral(Position),
+    EmptyLiteral {
+        position: Position,
+    },
     EmptyIdentifier {
         position: Position,
     },
@@ -78,6 +80,12 @@ pub enum Node {
         on_false: Option<Box<Node>>,
         position: Position,
     },
+    ForExpr {
+        variable: Box<Node>,
+        iterable: Box<Node>,
+        body: Option<Vec<Node>>,
+        position: Position,
+    },
 }
 
 impl Node {
@@ -115,7 +123,7 @@ impl Node {
                         }),
                 )
             }
-            Node::EmptyLiteral(..) => "()".to_string(),
+            Node::EmptyLiteral { .. } => "()".to_string(),
             Node::EmptyIdentifier { .. } => "".to_string(),
             Node::Identifier { value, .. } => value.clone(),
             Node::UnaryExpression {
@@ -207,6 +215,20 @@ impl Node {
                 }
                 s
             }
+            Node::ForExpr {
+                variable,
+                iterable,
+                body: _,
+                position,
+            } => {
+                return format!(
+                    "{} ({}): {} in ({})",
+                    t!("literals.for"),
+                    position.string(),
+                    variable.string(),
+                    iterable.string()
+                )
+            }
         }
     }
 
@@ -217,7 +239,7 @@ impl Node {
             Node::BoolLiteral { position, .. } => position,
             Node::ArrayLiteral { position, .. } => position,
             Node::ObjectLiteral { position, .. } => position,
-            Node::EmptyLiteral(pos) => pos,
+            Node::EmptyLiteral { position } => position,
             Node::EmptyIdentifier { position } => position,
             Node::Identifier { position, .. } => position,
             Node::UnaryExpression { position, .. } => position,
@@ -227,11 +249,12 @@ impl Node {
             Node::FunctionCall { position, .. } => position,
             Node::FunctionLiteral { position, .. } => position,
             Node::IfExpr { position, .. } => position,
+            Node::ForExpr { position, .. } => position,
         }
     }
 }
 
-/// Parses a stream of tokens into AST [`_Node`]s.
+/// Parses a stream of tokens into AST [`Node`]s.
 /// This implementation is a recursive descent parser.
 pub fn parse(tokens: &[Tok], nodes: &mut Vec<Node>, debug_parser: bool) -> Result<(), Err> {
     let (mut idx, length) = (0, tokens.len());
@@ -301,6 +324,7 @@ fn parse_expression(
         | Kind::QuestionMark
         | Kind::Bang
         | Kind::RightBracket
+        | Kind::In
         | Kind::EllipsisOp => {
             Ok((atom, idx - 1)) // consumed by caller
         }
@@ -416,7 +440,9 @@ fn parse_atom(
 
     let mut atom: Node;
     match tok.kind {
-        Kind::If => return parse_if_expr(&tokens[idx..], col_bound),
+        Kind::If => return parse_if_expr(tok, &tokens[idx..], col_bound),
+
+        Kind::For => return parse_for_expr(tok, &tokens[idx..], col_bound),
 
         Kind::LeftParen => return parse_capsulated_expr(tokens, idx, col_bound),
 
@@ -501,7 +527,14 @@ fn parse_atom(
             }
         }
 
-        Kind::EmptyLiteral => return Ok((Node::EmptyLiteral(tok.position.clone()), idx)),
+        Kind::EmptyLiteral => {
+            return Ok((
+                Node::EmptyLiteral {
+                    position: tok.position.clone(),
+                },
+                idx,
+            ))
+        }
 
         Kind::EmptyIdentifier => {
             return Ok((
@@ -782,7 +815,7 @@ fn parse_object_literal(tokens: &[Tok], name: Node) -> Result<(Node, usize), Err
     ))
 }
 
-fn parse_if_expr(tokens: &[Tok], col_bound: usize) -> Result<(Node, usize), Err> {
+fn parse_if_expr(if_token: &Tok, tokens: &[Tok], col_bound: usize) -> Result<(Node, usize), Err> {
     let (condition, mut idx) = parse_expression(tokens, false, col_bound)?;
     let mut if_arms = [None::<Box<Node>>, None::<Box<Node>>];
 
@@ -804,16 +837,83 @@ fn parse_if_expr(tokens: &[Tok], col_bound: usize) -> Result<(Node, usize), Err>
         }
     }
 
-    let pos = condition.position();
     Ok((
         Node::IfExpr {
             condition: Box::new(condition.clone()),
             on_true: if_arms[0].clone(),
             on_false: if_arms[1].clone(),
-            position: pos.clone(),
+            position: if_token.position.clone(),
         },
         idx + 1, // +1 for Node::If consumed by caller
     ))
+}
+
+fn parse_for_expr(for_token: &Tok, tokens: &[Tok], col_bound: usize) -> Result<(Node, usize), Err> {
+    let (variable, mut idx) = parse_expression(tokens, false, col_bound)?;
+
+    // assert the next token is 'in'
+    guard_unexpected_input_end(tokens, idx)?;
+    if tokens[idx].kind != Kind::In {
+        return Err(Err {
+            message: t!(
+                "errors.parse_for_expr_e1",
+                a = t!("literals.in"),
+                b = tokens[idx].position.string(),
+            ),
+            reason: ErrorReason::Syntax,
+        });
+    }
+
+    // +1 to consume the 'in' token
+    idx += 1;
+    guard_unexpected_input_end(tokens, idx)?;
+
+    // parse the iterable
+    let (iterable, consumed) = parse_expression(&tokens[idx..], false, col_bound)?;
+    idx += consumed;
+
+    // early return if the body is empty
+    let empty_loop = (
+        Node::ForExpr {
+            variable: Box::new(variable.clone()),
+            iterable: Box::new(iterable.clone()),
+            body: None,
+            position: for_token.position.clone(),
+        },
+        idx,
+    );
+
+    // early return if the body is empty and there no more tokens
+    if idx == tokens.len() {
+        return Ok(empty_loop.clone());
+    }
+
+    guard_unexpected_input_end(tokens, idx)?;
+    // the body should be nested beyond the for token's column
+    if for_token.position.column > tokens[idx].position.column {
+        return Ok(empty_loop.clone());
+    }
+
+    let body = {
+        let col_bound = for_token.position.column;
+        let mut body = Vec::new();
+        while idx < tokens.len() && tokens[idx].position.column > col_bound {
+            let (stmt, consumed) = parse_expression(&tokens[idx..], false, col_bound)?;
+            body.push(stmt);
+            idx += consumed;
+        }
+        body
+    };
+
+    return Ok((
+        Node::ForExpr {
+            variable: Box::new(variable),
+            iterable: Box::new(iterable),
+            body: Some(body),
+            position: for_token.position.clone(),
+        },
+        idx + 1, // +1 for Node::For consumed by caller
+    ));
 }
 
 fn parse_function_call(
@@ -1008,7 +1108,7 @@ fn guard_unexpected_input_end(tokens: &[Tok], idx: usize) -> Result<(), Err> {
 
 #[cfg(test)]
 mod test {
-    use super::parse_expression;
+    use super::{parse_expression, parse_for_expr};
     use crate::{
         lexer::{Kind, Position, Tok},
         parser::Node,
@@ -1140,5 +1240,89 @@ mod test {
             },
         };
         assert_eq!(res, expect);
+    }
+
+    #[test]
+    fn for_expr() {
+        // "for num in numbers\n   println num";
+        let tokens = [
+            Tok {
+                kind: Kind::For,
+                str: None,
+                num: None,
+                position: Position { line: 1, column: 1 },
+            },
+            Tok {
+                kind: Kind::Identifier,
+                str: Some("num".to_string()),
+                num: None,
+                position: Position { line: 1, column: 5 },
+            },
+            Tok {
+                kind: Kind::In,
+                str: None,
+                num: None,
+                position: Position { line: 1, column: 9 },
+            },
+            Tok {
+                kind: Kind::Identifier,
+                str: Some("numbers".to_string()),
+                num: None,
+                position: Position {
+                    line: 1,
+                    column: 12,
+                },
+            },
+            Tok {
+                kind: Kind::Identifier,
+                str: Some("println".to_string()),
+                num: None,
+                position: Position { line: 2, column: 4 },
+            },
+            Tok {
+                kind: Kind::Identifier,
+                str: Some("num".to_string()),
+                num: None,
+                position: Position {
+                    line: 2,
+                    column: 12,
+                },
+            },
+        ];
+        let (res, consumed) =
+            parse_expression(&tokens, false, 1).expect("this will return the ForExpr node");
+        assert_eq!(6, consumed, "the number of nodes consumed");
+
+        assert_eq!(
+            Node::ForExpr {
+                variable: Box::new(Node::Identifier {
+                    value: "num".to_string(),
+                    position: Position { line: 1, column: 5 },
+                }),
+                iterable: Box::new(Node::Identifier {
+                    value: "numbers".to_string(),
+                    position: Position {
+                        line: 1,
+                        column: 12,
+                    },
+                }),
+                body: Some(vec![Node::FunctionCall {
+                    function: Box::new(Node::Identifier {
+                        value: "println".to_string(),
+                        position: Position { line: 2, column: 4 },
+                    }),
+                    arguments: vec![Node::Identifier {
+                        value: "num".to_string(),
+                        position: Position {
+                            line: 2,
+                            column: 12,
+                        },
+                    }],
+                    position: Position { line: 2, column: 4 },
+                }]),
+                position: Position { line: 1, column: 1 },
+            },
+            res
+        );
     }
 }

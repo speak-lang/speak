@@ -9,6 +9,8 @@ types:
 literals:
   true: true
   false: false
+  for: for
+  in: in
   if: if
   is: is
 builtins:
@@ -59,6 +61,7 @@ errors:
   eval_speak_function_e2: could not resolve node (%{a}) as identifier
   eval_speak_function_e3: expected the return type to be an identifier node but got (%{a})
   eval_speak_function_e4: attempted to call a non-function value %{a} of type %{b}
+  eval_for_expr_node_e1: iterable expected of type string or array but got (%{a}) at [%{b}]
   unwrap_thunk_e1: the expected return type `%{a}` could not be constructed
   unwrap_thunk_e2: expected function literal node value but got %{a}
   unwrap_thunk_e3: expected thunk value but got %{a}
@@ -77,6 +80,7 @@ errors:
   parse_function_literal_e2: expected a type, found (%{a}) at [%{b}]
   parse_fn_sign_args_e1: the signature parsed more types than arguements at [%{a}]
   parse_fn_sign_args_e2: expected identifier, found (%{a}) at [%{b}]
+  parse_for_expr_e1: expected `%{a}` keyword at [%{b}]
   guard_unexpected_input_end_e1: unexpected end of input at [%{a}]
   guard_unexpected_input_end_e2: unexpected end of input
   pop_frame_e: there is no frame in the stack to pop
@@ -87,3 +91,5 @@ errors:
   load_builtins_e3: "%{a} can only be called for array and string types"
   load_builtins_e4: mod arguements must be string literals
   load_builtins_e5: Stackframe provided is Nil
+  
+  

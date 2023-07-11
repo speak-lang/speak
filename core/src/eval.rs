@@ -31,10 +31,10 @@ pub mod r#type {
         /// Array type.
         Array(Box<Type>),
 
-        // Function type.
+        /// Function type.
         Function,
 
-        // Empty type.
+        /// Empty type.
         Empty,
     }
 
@@ -92,23 +92,20 @@ pub mod value {
 
         Array(Type, Vec<Value>),
 
-        /// This is the value of any variables referencing functions
-        /// defined in a Speak program.
+        /// This is the value of any variables referencing functions defined in a Speak program.
         Function(Function),
 
-        /// This is a function whose implementation is written in rust and
-        /// is part of the interpreter.
+        /// This is a function whose implementation is written in rust and is part of the interpreter.
         NativeFunction(NativeFn),
 
-        /// This is an internal representation of a lazy
-        /// function evaluation used to implement tail call optimization.
+        /// This is an internal representation of a lazy function evaluation used to implement tail call optimization.
         FunctionCallThunk {
             vt: VTable,
             func: Function,
         },
 
-        /// Assignment is a value that holds an assignment operation value after having been psuhed to the
-        /// stack. It's a convenience wrapper that helps decide whether to evaluate the next value in a contained scope.
+        /// Assignment is a value that holds an assignment operation value after having been pushed to the stack.
+        /// It's a convenience wrapper that helps decide whether to evaluate the next value in a contained scope.
         Assignment(Box<Value>),
 
         Empty,
@@ -226,7 +223,7 @@ impl Node {
                     body,
                 })
             }
-            Node::EmptyLiteral(..) | Node::EmptyIdentifier { .. } => Ok(Value::Empty),
+            Node::EmptyLiteral { .. } | Node::EmptyIdentifier { .. } => Ok(Value::Empty),
             Node::Identifier { value, position } => {
                 if let Some(val) = stack.get(value) {
                     return Ok(val.clone());
@@ -394,6 +391,8 @@ impl Node {
                 }
             }
             Node::IfExpr { .. } => eval_if_expr_node(self, stack, allow_thunk),
+
+            Node::ForExpr { .. } => eval_for_expr_node(self, stack, allow_thunk),
         }
     }
 }
@@ -445,7 +444,104 @@ fn eval_if_expr_node(node: &Node, stack: &mut StackFrame, allow_thunk: bool) -> 
 
     Err(Err {
         reason: ErrorReason::System,
-        message: "".to_string(),
+        message: "todo!".to_string(),
+    })
+}
+
+fn eval_for_expr_node(
+    node: &Node,
+    stack: &mut StackFrame,
+    allow_thunk: bool,
+) -> Result<Value, Err> {
+    if let Node::ForExpr {
+        variable,
+        iterable,
+        body,
+        position,
+    } = node
+    {
+        let mut iterable = iterable.as_ref().clone();
+        let val = iterable.eval(stack, allow_thunk)?;
+
+        let var: String;
+        match variable.as_ref() {
+            Node::Identifier { value, .. } => {
+                var = value.clone();
+            }
+            _ => {
+                return Err(Err {
+                    message: t!(
+                        "errors.eval_e7",
+                        a = variable.string(),
+                        b = position.string()
+                    ),
+                    reason: ErrorReason::Runtime,
+                });
+            }
+        }
+
+        match val {
+            Value::String(val) => {
+                // we only loop if there's a body
+                if let Some(body) = body.as_ref().clone() {
+                    let mut stack = stack.clone();
+                    for c in val.chars() {
+                        stack.set(var.clone(), Value::Number(c as u8 as f64));
+                        let mut body = body.clone();
+                        for stmt in body.iter_mut() {
+                            let ret = stmt.eval(&mut stack, allow_thunk)?;
+
+                            // if the loop returns an non empty value return from loop
+                            if let Value::Empty = ret {
+                                continue;
+                            } else {
+                                return Ok(ret);
+                            }
+                        }
+                    }
+                }
+
+                return Ok(Value::Empty);
+            }
+
+            Value::Array(_, items) => {
+                // we only loop if there's a body
+                if let Some(body) = body.as_ref().clone() {
+                    let mut stack = stack.clone();
+                    for item in items {
+                        stack.set(var.clone(), item);
+                        let mut body = body.clone();
+                        for stmt in body.iter_mut() {
+                            let ret = stmt.eval(&mut stack, allow_thunk)?;
+
+                            // if the loop returns an non empty value return from loop
+                            if let Value::Empty = ret {
+                                continue;
+                            } else {
+                                return Ok(ret);
+                            }
+                        }
+                    }
+                }
+
+                return Ok(Value::Empty);
+            }
+            _ => {
+                return Err(Err {
+                    message: t!(
+                        "errors.eval_for_expr_node_e1",
+                        a = iterable.string(),
+                        b = position.string()
+                    ),
+                    reason: ErrorReason::Runtime,
+                })
+            }
+        }
+    }
+
+    Err(Err {
+        reason: ErrorReason::System,
+        message: "todo!".to_string(),
     })
 }
 

@@ -24,6 +24,8 @@ pub enum Kind {
     EmptyIdentifier,
 
     If,
+    For,
+    In,
 
     TrueLiteral,
     FalseLiteral,
@@ -72,6 +74,8 @@ impl Kind {
             Kind::EmptyIdentifier => "'_'".to_string(),
 
             Kind::If => t!("literals.if"),
+            Kind::For => t!("literals.for"),
+            Kind::In => t!("literals.in"),
 
             Kind::TrueLiteral => format!("{} {}", t!("literals.true"), t!("misc.literal")),
             Kind::FalseLiteral => format!("{} {}", t!("literals.false"), t!("misc.literal")),
@@ -114,7 +118,7 @@ impl Kind {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub struct Position {
     pub line: usize,
     pub column: usize,
@@ -503,6 +507,10 @@ fn commit_arbitrary(
         x if x == t!("literals.false") => commit_token(Kind::FalseLiteral, tokens),
 
         x if x == t!("literals.if") => commit_token(Kind::If, tokens),
+
+        x if x == t!("literals.for") => commit_token(Kind::For, tokens),
+
+        x if x == t!("literals.in") => commit_token(Kind::In, tokens),
 
         x if x == t!("literals.is") => commit_token(Kind::AssignOp, tokens),
 
