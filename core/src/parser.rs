@@ -1064,7 +1064,7 @@ fn parse_function_literal(tokens: &[Tok], col_bound: usize) -> Result<(Node, usi
     ))
 }
 
-/// takes a token stream of the function signature, parses it and returns the function arguments signature.
+/// Takes a token stream of the function signature, parses it and returns the function arguments signature.
 fn parse_fn_sign_args(tokens: &[Tok]) -> Result<(Vec<(Node, Node)>, usize), Err> {
     //  fname, lastname string -> string
     // i number, s int -> string
@@ -1139,7 +1139,7 @@ fn guard_unexpected_input_end(tokens: &[Tok], idx: usize) -> Result<(), Err> {
 
 #[cfg(test)]
 mod test {
-    use super::{parse_expression, parse_for_expr};
+    use super::parse_expression;
     use crate::{
         lexer::{Kind, Position, Tok},
         parser::Node,

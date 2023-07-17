@@ -16,8 +16,7 @@ lazy_static! {
         Regex::new(r"^(\[\])+([a-z]+)$").expect("regex array pattern is valid");
 }
 
-// Kind is the sum type of all possible types
-// of tokens in a Speak program
+// Kind is the sum type of all possible types of tokens in a Speak program.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Kind {
     Identifier,
@@ -134,8 +133,7 @@ impl Position {
     }
 }
 
-// Tok is the monomorphic struct representing all Speak program tokens
-// in the lexer.
+// Tok is the monomorphic struct representing all Speak program tokens in the lexer.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Tok {
     pub kind: Kind,
@@ -151,7 +149,7 @@ impl Tok {
                 format!(
                     "{} '{}' [{}]",
                     self.kind.string(),
-                    self.str.clone().unwrap(), // safe to unwrap, types matched always have str
+                    self.str.clone().expect("types matched always have str"),
                     self.position.string()
                 )
             }
@@ -160,7 +158,7 @@ impl Tok {
                 format!(
                     "{} {} [{}]",
                     self.kind.string(),
-                    self.num.unwrap(), // safe to unwrap, types matched always have num
+                    self.num.expect("types matched always have num"),
                     self.position.string()
                 )
             }
@@ -170,8 +168,8 @@ impl Tok {
     }
 }
 
-// tokenize takes an io.Reader and transforms it into a stream of Tok (tokens).
-// assumption: the inputs are valid UTF-8 strings.
+// Tokenize takes an io.Reader and transforms it into a stream of Tok (tokens).
+// Assumption: the inputs are valid UTF-8 strings.
 pub fn tokenize(
     unbuffered: &mut BufReader<&[u8]>,
     tokens: &mut Vec<Tok>,

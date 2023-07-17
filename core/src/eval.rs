@@ -1384,7 +1384,7 @@ fn to_number(node: &mut Node, stack: &mut StackFrame) -> Result<f64, Err> {
 #[cfg(test)]
 mod test {
     use crate::{
-        eval::value::Value,
+        eval::{value::Value, UD},
         lexer::Position,
         parser::Node,
         runtime::{load_builtins, Context},
@@ -1417,7 +1417,7 @@ mod test {
             };
 
             let val = node_fn_call
-                .eval(&mut ctx_test.frame, false)
+                .eval(&UD, &mut ctx_test.frame, false)
                 .expect("this should resolve to empty value");
 
             assert_eq!(val.string(), "");
@@ -1439,7 +1439,7 @@ mod test {
             };
 
             let val = node_fn_call
-                .eval(&mut ctx_test.frame, false)
+                .eval(&UD, &mut ctx_test.frame, false)
                 .expect("this should resolve to a string value");
 
             if let Value::String(_val) = val {

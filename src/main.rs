@@ -10,7 +10,7 @@ use std::{
 
 static SPEAK: &str = "SPEAK";
 
-/// The `Speak` CLI Interpreter
+/// The `Speak` CLI Interpreter.
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct SpeakCLI {
