@@ -10,6 +10,8 @@ literals:
   true: kweli
   false: ongo
   for: kwa
+  continue: endelea
+  break: vunja
   in: katika
   if: kama
   is: ni
@@ -38,6 +40,7 @@ errors:
   eval_e5: haikuweza kuchanganua %{a} kama thamani ya safu, kwenye nafasi %{b}
   eval_e6: operesheni ya kukata haitoi faharasa ya mwanzo au mwisho
   eval_e7: nodi ya kitambulisho ilitarajiwa lakini kapata %{a}, kwenye nafasi [%{b}]
+  eval_e8: isiyotarajiwa %{a} kwenye nafasi [%{b}]
   eval_if_expr_node_e1: msimbo, (%{a}) kwenye nafasi [%{b}], hautathmini kwa thamani ya bool
   eval_binary_expr_node_e1: jina la sifa batili %{a} la thamani ya mchanganyiko %{b}, kwenye nafasi [%{c}]
   eval_binary_expr_node_e2: thamani ya mchanganyiko %{a} haijulikani

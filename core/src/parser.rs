@@ -1,11 +1,10 @@
-use rust_i18n::t;
-
 use super::{
     error::{Err, ErrorReason},
     eval::r#type::Type,
     lexer::{Kind, Position, Tok},
     log::log_debug,
 };
+use rust_i18n::t;
 use std::fmt::Debug;
 
 /// Node represents an abstract syntax tree (AST) node in a Speak program.
@@ -84,6 +83,12 @@ pub enum Node {
         variable: Box<Node>,
         iterable: Box<Node>,
         body: Option<Vec<Node>>,
+        position: Position,
+    },
+    Continueliteral {
+        position: Position,
+    },
+    BreakLiteral {
         position: Position,
     },
 }
@@ -229,6 +234,12 @@ impl Node {
                     iterable.string()
                 )
             }
+            Node::Continueliteral { position } => {
+                return format!("{} ({})", t!("literals.continue"), position.string())
+            }
+            Node::BreakLiteral { position } => {
+                return format!("{} ({})", t!("literals.break"), position.string())
+            }
         }
     }
 
@@ -250,6 +261,8 @@ impl Node {
             Node::FunctionLiteral { position, .. } => position,
             Node::IfExpr { position, .. } => position,
             Node::ForExpr { position, .. } => position,
+            Node::Continueliteral { position } => position,
+            Node::BreakLiteral { position } => position,
         }
     }
 }
@@ -495,6 +508,24 @@ fn parse_atom(
             return Ok((
                 Node::BoolLiteral {
                     value: false,
+                    position: tok.position.clone(),
+                },
+                idx,
+            ));
+        }
+
+        Kind::ContinueLiteral => {
+            return Ok((
+                Node::Continueliteral {
+                    position: tok.position.clone(),
+                },
+                idx,
+            ));
+        }
+
+        Kind::BreakLiteral => {
+            return Ok((
+                Node::BreakLiteral {
                     position: tok.position.clone(),
                 },
                 idx,
