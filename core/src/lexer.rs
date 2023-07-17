@@ -26,9 +26,9 @@ pub enum Kind {
     If,
     For,
     In,
-    Continue,
-    Break,
 
+    ContinueLiteral,
+    BreakLiteral,
     TrueLiteral,
     FalseLiteral,
     NumberLiteral,
@@ -78,8 +78,8 @@ impl Kind {
             Kind::If => t!("literals.if"),
             Kind::For => t!("literals.for"),
             Kind::In => t!("literals.in"),
-            Kind::Continue => t!("literals.continue"),
-            Kind::Break => t!("literals.break"),
+            Kind::ContinueLiteral => t!("literals.continue"),
+            Kind::BreakLiteral => t!("literals.break"),
 
             Kind::TrueLiteral => format!("{} {}", t!("literals.true"), t!("misc.literal")),
             Kind::FalseLiteral => format!("{} {}", t!("literals.false"), t!("misc.literal")),
@@ -516,9 +516,9 @@ fn commit_arbitrary(
 
         x if x == t!("literals.in") => commit_token(Kind::In, tokens),
 
-        x if x == t!("literals.continue") => commit_token(Kind::Continue, tokens),
+        x if x == t!("literals.continue") => commit_token(Kind::ContinueLiteral, tokens),
 
-        x if x == t!("literals.break") => commit_token(Kind::Break, tokens),
+        x if x == t!("literals.break") => commit_token(Kind::BreakLiteral, tokens),
 
         x if x == t!("literals.is") => commit_token(Kind::AssignOp, tokens),
 

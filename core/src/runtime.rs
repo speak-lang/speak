@@ -187,7 +187,7 @@ impl Context {
 
         for (i, node) in nodes.into_iter().enumerate() {
             let mut node = node;
-            let val = node.eval(CallerCtx::Undefined, &mut self.frame, false)?;
+            let val = node.eval(&CallerCtx::Undefined, &mut self.frame, false)?;
             if i == len - 1 {
                 if dump_frame {
                     self.dump();

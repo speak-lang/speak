@@ -1,11 +1,10 @@
-use rust_i18n::t;
-
 use super::{
     error::{Err, ErrorReason},
     eval::r#type::Type,
     lexer::{Kind, Position, Tok},
     log::log_debug,
 };
+use rust_i18n::t;
 use std::fmt::Debug;
 
 /// Node represents an abstract syntax tree (AST) node in a Speak program.
@@ -509,6 +508,24 @@ fn parse_atom(
             return Ok((
                 Node::BoolLiteral {
                     value: false,
+                    position: tok.position.clone(),
+                },
+                idx,
+            ));
+        }
+
+        Kind::ContinueLiteral => {
+            return Ok((
+                Node::Continueliteral {
+                    position: tok.position.clone(),
+                },
+                idx,
+            ));
+        }
+
+        Kind::BreakLiteral => {
+            return Ok((
+                Node::BreakLiteral {
                     position: tok.position.clone(),
                 },
                 idx,
