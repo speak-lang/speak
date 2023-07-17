@@ -26,6 +26,8 @@ pub enum Kind {
     If,
     For,
     In,
+    Continue,
+    Break,
 
     TrueLiteral,
     FalseLiteral,
@@ -76,6 +78,8 @@ impl Kind {
             Kind::If => t!("literals.if"),
             Kind::For => t!("literals.for"),
             Kind::In => t!("literals.in"),
+            Kind::Continue => t!("literals.continue"),
+            Kind::Break => t!("literals.break"),
 
             Kind::TrueLiteral => format!("{} {}", t!("literals.true"), t!("misc.literal")),
             Kind::FalseLiteral => format!("{} {}", t!("literals.false"), t!("misc.literal")),

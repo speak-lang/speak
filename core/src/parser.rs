@@ -86,6 +86,12 @@ pub enum Node {
         body: Option<Vec<Node>>,
         position: Position,
     },
+    Continueliteral {
+        position: Position,
+    },
+    BreakLiteral {
+        position: Position,
+    },
 }
 
 impl Node {
@@ -229,6 +235,12 @@ impl Node {
                     iterable.string()
                 )
             }
+            Node::Continueliteral { position } => {
+                return format!("{} ({})", t!("literals.continue"), position.string())
+            }
+            Node::BreakLiteral { position } => {
+                return format!("{} ({})", t!("literals.break"), position.string())
+            }
         }
     }
 
@@ -250,6 +262,8 @@ impl Node {
             Node::FunctionLiteral { position, .. } => position,
             Node::IfExpr { position, .. } => position,
             Node::ForExpr { position, .. } => position,
+            Node::Continueliteral { position } => position,
+            Node::BreakLiteral { position } => position,
         }
     }
 }

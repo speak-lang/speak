@@ -10,6 +10,8 @@ literals:
   true: true
   false: false
   for: for
+  continue: continue
+  break: break
   in: in
   if: if
   is: is
@@ -38,6 +40,7 @@ errors:
   eval_e5: could not parse %{a} as array value, at [%{b}]
   eval_e6: slicing operation does not provide a start or an end index
   eval_e7: expected identifier node but got %{a} at [%{b}]
+  eval_e8: unexpected literal %{a} at [%{b}]
   eval_if_expr_node_e1: the codition, (%{a}) at [%{b}], does not evaluate to bool value
   eval_binary_expr_node_e1: invalid property name %{a} of composite value %{b}, at [%{c}]
   eval_binary_expr_node_e2: composite value %{a} unknown

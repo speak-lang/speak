@@ -1,6 +1,6 @@
 use super::{
     error::{Err, ErrorReason},
-    eval::value::Value,
+    eval::{value::Value, CallerCtx},
     lexer::tokenize,
     log::log_debug,
     parser::{parse, Node},
@@ -187,7 +187,7 @@ impl Context {
 
         for (i, node) in nodes.into_iter().enumerate() {
             let mut node = node;
-            let val = node.eval(&mut self.frame, false)?;
+            let val = node.eval(CallerCtx::Undefined, &mut self.frame, false)?;
             if i == len - 1 {
                 if dump_frame {
                     self.dump();
