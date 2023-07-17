@@ -536,8 +536,11 @@ fn eval_for_expr_node(
                             let ret = stmt.eval(CallerCtx::InLoop, &mut stack, allow_thunk)?;
 
                             match ret {
+                                // if the loop returns an non empty value continue loop
                                 Value::ContinueCalled | Value::Empty => continue,
+                                // if break is called return from loop
                                 Value::BreakCalled => break,
+                                // else return value
                                 _ => return Ok(ret),
                             }
                         }
@@ -555,13 +558,15 @@ fn eval_for_expr_node(
                         stack.set(var.clone(), item);
                         let mut body = body.clone();
                         for stmt in body.iter_mut() {
-                            let ret = stmt.eval(UD, &mut stack, allow_thunk)?;
+                            let ret = stmt.eval(CallerCtx::InLoop, &mut stack, allow_thunk)?;
 
-                            // if the loop returns an non empty value return from loop
-                            if let Value::Empty = ret {
-                                continue;
-                            } else {
-                                return Ok(ret);
+                            match ret {
+                                // if the loop returns an non empty value continue loop
+                                Value::ContinueCalled | Value::Empty => continue,
+                                // if break is called return from loop
+                                Value::BreakCalled => break,
+                                // else return value
+                                _ => return Ok(ret),
                             }
                         }
                     }

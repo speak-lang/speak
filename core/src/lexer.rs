@@ -516,6 +516,10 @@ fn commit_arbitrary(
 
         x if x == t!("literals.in") => commit_token(Kind::In, tokens),
 
+        x if x == t!("literals.continue") => commit_token(Kind::Continue, tokens),
+
+        x if x == t!("literals.break") => commit_token(Kind::Break, tokens),
+
         x if x == t!("literals.is") => commit_token(Kind::AssignOp, tokens),
 
         "->" => commit_token(Kind::FunctionArrow, tokens),
