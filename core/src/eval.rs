@@ -60,7 +60,7 @@ pub mod r#type {
                 x if x == t!("types.string") => Type::String,
                 x if x == t!("types.function") => Type::Function,
                 "()" => Type::Empty,
-                _ => Type::Object(type_name.to_string()), // If errorneous, fails at Runtime
+                _ => Type::Object(type_name.to_string()), // If erroneous, fails at Runtime
             }
         }
     }
@@ -561,7 +561,7 @@ fn eval_binary_expr_node(node: &Node, stack: &mut StackFrame) -> Result<Value, E
                                 _ => {
                                     return Err(Err {
                                         message: t!(
-                                            "erros.eval_binary_expr_node_e2",
+                                            "errors.eval_binary_expr_node_e2",
                                             a = object.string()
                                         ),
                                         reason: ErrorReason::System,

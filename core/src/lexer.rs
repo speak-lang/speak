@@ -266,7 +266,7 @@ pub fn tokenize(
                 ':' => {
                     commit_prev()?;
 
-                    // lookahead for another ':', mkaing up ::; module accessor
+                    // lookahead for another ':', making up ::; module accessor
                     if let Some((_, c)) = buf_iter.peek() {
                         if *c == ':' {
                             token_commit(Kind::ModuleAccessor, tokens);
@@ -690,7 +690,7 @@ mod test {
             assert_eq!(tokens.len(), 0);
 
             buf_reader = BufReader::new(
-                "   // this is a spaced comment with an identation of 3 space char".as_bytes(),
+                "   // this is a spaced comment with an indentation of 3 space char".as_bytes(),
             );
             match tokenize(&mut buf_reader, &mut tokens, true) {
                 Ok(_) => (),
@@ -735,7 +735,7 @@ mod test {
             );
         }
 
-        // tokenise an identifier and a string literal
+        // tokenize an identifier and a string literal
         {
             tokens.clear();
             buf_reader = BufReader::new("// This is module declaration.\nmod \"fmt\"".as_bytes());
@@ -764,7 +764,7 @@ mod test {
             );
         }
 
-        // tokenize function call on number, as identitier and numberliteral
+        // tokenize function call on number, as identifier and numberliteral
         {
             tokens.clear();
             buf_reader = BufReader::new("sprint 10000-10".as_bytes());
