@@ -14,7 +14,7 @@ static SPEAK: &str = "SPEAK";
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct SpeakCLI {
-    // CLI ARGUEMENTS
+    // CLI ARGUMENTS
     #[clap(subcommand)]
     command: Commands,
 
