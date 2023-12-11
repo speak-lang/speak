@@ -643,6 +643,14 @@ fn eval_binary_expr_node(
                         return Ok(Value::Assignment(Box::new(right_value)));
                     }
 
+                    Node::EmptyIdentifier { .. } => {
+                        // right operand node must evaluate to a value
+                        let mut r = right_operand.as_ref().clone();
+                        _ = r.eval(ctx, stack, false)?;
+
+                        return Ok(Value::Empty);
+                    }
+
                     Node::IndexingOp { operand, index, .. } => {
                         let mut operand = operand.as_ref().clone();
                         match operand.eval(ctx, stack, false)? {
