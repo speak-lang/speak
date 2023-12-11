@@ -224,7 +224,7 @@ impl Context {
 
     /// Allows to Exec() a program file in a given context.
     pub fn exec_path(&mut self, speak: &str, path: &str) -> Result<Value, Err> {
-        match fs::read(path.clone()) {
+        match fs::read(path) {
             Ok(data) => {
                 self.file = Some(path.to_string());
                 let (val, _, _) = self.exec(speak, BufReader::new(&data[..]))?;
