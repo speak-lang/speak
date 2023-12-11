@@ -9,6 +9,10 @@ types:
 literals:
   true: kweli
   false: ongo
+  for: kwa
+  continue: endelea
+  break: vunja
+  in: katika
   if: kama
   is: ni
 builtins:
@@ -36,6 +40,7 @@ errors:
   eval_e5: haikuweza kuchanganua %{a} kama thamani ya safu, kwenye nafasi %{b}
   eval_e6: operesheni ya kukata haitoi faharasa ya mwanzo au mwisho
   eval_e7: nodi ya kitambulisho ilitarajiwa lakini kapata %{a}, kwenye nafasi [%{b}]
+  eval_e8: isiyotarajiwa %{a} kwenye nafasi [%{b}]
   eval_if_expr_node_e1: msimbo, (%{a}) kwenye nafasi [%{b}], hautathmini kwa thamani ya bool
   eval_binary_expr_node_e1: jina la sifa batili %{a} la thamani ya mchanganyiko %{b}, kwenye nafasi [%{c}]
   eval_binary_expr_node_e2: thamani ya mchanganyiko %{a} haijulikani
@@ -59,6 +64,7 @@ errors:
   eval_speak_function_e2: haikuweza kutatua nodi (%{a}) kama kitambulisho
   eval_speak_function_e3: ilitarajia aina ya kurudi kuwa nodi ya kitambulisho lakini nikapata (%{a})
   eval_speak_function_e4: ilijaribu kuita thamani isiyo-kazi %{a} ya aina %{b}
+  eval_for_expr_node_e1: iterable ilitarajiwa ya aina ya mlolongo au safu lakini ilipata (%{a}) kwa [%{b}]
   unwrap_thunk_e1: aina ya kurejesha inayotarajiwa `%{a}` haikuweza kujengwa
   unwrap_thunk_e2: utendakazi uliotarajiwa thamani halisi ya nodi lakini nikapata %{a}
   unwrap_thunk_e3: ilitarajia thamani ya 'thunk' lakini ilipata %{a}
@@ -77,6 +83,7 @@ errors:
   parse_function_literal_e2: ilitarajia aina, iliyopatikana (%{a}) kwenye nafasi [%{b}]
   parse_fn_sign_args_e1: sahihi ilichanganua aina zaidi ya hoja katika [%{a}]
   parse_fn_sign_args_e2: kitambulisho kilitarajiwa, (%{a}) imepatikana kwenye nafasi [%{b}]
+  parse_for_expr_e1: inatarajiwa `%{a}` neno kuu katika [%{b}]
   guard_unexpected_input_end_e1: mwisho usiotarajiwa wa ingizo kwenye nafasi [%{a}]
   guard_unexpected_input_end_e2: mwisho usiotarajiwa wa ingizo
   pop_frame_e: hakuna fremu kwenye rafu ya kuibua
@@ -87,3 +94,4 @@ errors:
   load_builtins_e3: "%{a} inaweza tu kuitwa kwa safu na aina za mlolongo"
   load_builtins_e4: hoja za mod lazima ziwe ya milolongo halisi
   load_builtins_e5: Stackframe uliopewa ni Sifuri
+  

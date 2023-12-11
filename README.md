@@ -1,5 +1,5 @@
 <div align="center">
-	<img width="256" src="assets/logo.png" alt="Ink programming language logo">
+	<img width="256" src="assets/logo.png" alt="Speak programming language logo">
 
 # Speak programming language
 
@@ -54,6 +54,8 @@ andika "matokeo ya fizzbuzz kwa {} ni {} yenyewe" 7 (fizzbuzz 7)
 English Speak, Fibonacci sequence.
 
 ```spk
+// Fibonacci sequence generator
+//
 // naive implementation
 fib: n number -> number
     if n = 0 ? 0
@@ -61,12 +63,12 @@ fib: n number -> number
     (fib n - 1) + (fib n - 2)
 
 // memoized implementation
+memo is [0, 1]
 fibMemo: n number -> number
-    memo is [0, 1] 
     if memo[n] = () ? memo[n] is (fibMemo n - 1) + (fibMemo n - 2)
     memo[n]
 
-println "Naive solution: {}" (fib 25)
+println "Naive solution: {}" (fib 20)
 print "Dynamic solution: {}" (fibMemo 20)
 ```
 
@@ -80,12 +82,12 @@ fib: n nambari -> nambari
     (fib n - 1) + (fib n - 2)
 
 // utekelezaji wa kumbukumbu
+kumbukumbu ni [0,1]
 fibKumbukumbu: n nambari -> nambari
-    kumbukumbu ni [0,1]
     kama kumbukumbu[n] = () ? kumbukumbu[n] ni (fibKumbukumbu n -1) + (fibKumbukumbu n - 2)
     kumbukumbu[n]
 
-andika_laini "Matokeo ya utekelezaji jinga: {}" (fib 25)
+andika_laini "Matokeo ya utekelezaji jinga: {}" (fib 20)
 andika "Matokeo ya utekelezaji wa kumbukumbu: {}" (fibKumbukumbu 20)
 ```
 
@@ -137,7 +139,7 @@ You can run Speak in 3 ways:
 2. The Speak binary can initialize an interactive repl session where you can start typing Speak code. Initialized like so: `speak repl`.
 3. Speak interpreter is written in Rust and Speak can be executed directly using the Rust interpreter's API.
 
-## Building locally.
+## Building locally
 
 To build locally, the [Rust toolchain](https://www.rust-lang.org/learn/get-started) must be installed.
 

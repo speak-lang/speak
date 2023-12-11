@@ -1,0 +1,6 @@
+numbers is [1,2,3,10]
+for num in numbers
+    println num
+    if num = 3 ? break
+
+println "10 did not print"

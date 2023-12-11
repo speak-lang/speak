@@ -23,7 +23,11 @@ pub enum Kind {
     EmptyIdentifier,
 
     If,
+    For,
+    In,
 
+    ContinueLiteral,
+    BreakLiteral,
     TrueLiteral,
     FalseLiteral,
     NumberLiteral,
@@ -71,6 +75,10 @@ impl Kind {
             Kind::EmptyIdentifier => "'_'".to_string(),
 
             Kind::If => t!("literals.if"),
+            Kind::For => t!("literals.for"),
+            Kind::In => t!("literals.in"),
+            Kind::ContinueLiteral => t!("literals.continue"),
+            Kind::BreakLiteral => t!("literals.break"),
 
             Kind::TrueLiteral => format!("{} {}", t!("literals.true"), t!("misc.literal")),
             Kind::FalseLiteral => format!("{} {}", t!("literals.false"), t!("misc.literal")),
@@ -113,7 +121,7 @@ impl Kind {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub struct Position {
     pub line: usize,
     pub column: usize,
@@ -502,6 +510,14 @@ fn commit_arbitrary(
 
         x if x == t!("literals.if") => commit_token(Kind::If, tokens),
 
+        x if x == t!("literals.for") => commit_token(Kind::For, tokens),
+
+        x if x == t!("literals.in") => commit_token(Kind::In, tokens),
+
+        x if x == t!("literals.continue") => commit_token(Kind::ContinueLiteral, tokens),
+
+        x if x == t!("literals.break") => commit_token(Kind::BreakLiteral, tokens),
+
         x if x == t!("literals.is") => commit_token(Kind::AssignOp, tokens),
 
         "->" => commit_token(Kind::FunctionArrow, tokens),
@@ -767,7 +783,7 @@ mod test {
         // tokenize function call on number, as identifier and numberliteral
         {
             tokens.clear();
-            buf_reader = BufReader::new("sprint 10000-10".as_bytes());
+            buf_reader = BufReader::new("sprint 10_000-10".as_bytes());
             if let Err(err) = tokenize(&mut buf_reader, &mut tokens, true) {
                 panic!("error: {}", err.message);
             }
@@ -800,7 +816,7 @@ mod test {
                     num: None,
                     position: Position {
                         line: 1,
-                        column: 13
+                        column: 14
                     }
                 }
             );
@@ -813,7 +829,7 @@ mod test {
                     num: Some(10.0),
                     position: Position {
                         line: 1,
-                        column: 14
+                        column: 15
                     }
                 }
             );

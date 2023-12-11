@@ -1,5 +1,3 @@
-use rust_i18n::t;
-
 use self::{
     r#type::Type,
     value::{Function, Value},
@@ -10,6 +8,7 @@ use super::{
     parser::Node,
     runtime::{StackFrame, VTable},
 };
+use rust_i18n::t;
 use std::collections::HashMap;
 
 pub mod r#type {
@@ -32,10 +31,10 @@ pub mod r#type {
         /// Array type.
         Array(Box<Type>),
 
-        // Function type.
+        /// Function type.
         Function,
 
-        // Empty type.
+        /// Empty type.
         Empty,
     }
 
@@ -93,26 +92,27 @@ pub mod value {
 
         Array(Type, Vec<Value>),
 
-        /// This is the value of any variables referencing functions
-        /// defined in a Speak program.
+        /// This is the value of any variables referencing functions defined in a Speak program.
         Function(Function),
 
-        /// This is a function whose implementation is written in rust and
-        /// is part of the interpreter.
+        /// This is a function whose implementation is written in rust and is part of the interpreter.
         NativeFunction(NativeFn),
 
-        /// This is an internal representation of a lazy
-        /// function evaluation used to implement tail call optimization.
+        /// This is an internal representation of a lazy function evaluation used to implement tail call optimization.
         FunctionCallThunk {
             vt: VTable,
             func: Function,
         },
 
-        /// Assignment is a value that holds an assignment operation value after having been psuhed to the
-        /// stack. It's a convenience wrapper that helps decide whether to evaluate the next value in a contained scope.
+        /// Assignment is a value that holds an assignment operation value after having been pushed to the stack.
+        /// It's a convenience wrapper that helps decide whether to evaluate the next value in a contained scope.
         Assignment(Box<Value>),
 
         Empty,
+
+        ContinueCalled,
+
+        BreakCalled,
     }
 
     #[derive(Debug, Clone)]
@@ -145,6 +145,7 @@ pub mod value {
                 | Value::NativeFunction(..) => Type::Function,
                 Value::Empty => Type::Empty,
                 Value::Assignment(val) => val.value_type(),
+                Value::ContinueCalled | Value::BreakCalled => Type::Empty,
             }
         }
 
@@ -178,13 +179,29 @@ pub mod value {
                 }
                 Value::Empty => "".to_string(),
                 Value::Assignment(val) => val.string(),
+                Value::ContinueCalled => t!("literals.continue"),
+                Value::BreakCalled => t!("literals.break"),
             }
         }
     }
 }
 
+// CallerCtx represents the context of using a language feature. This is used in evaluating Nodes in contexts to their caller.
+#[derive(Debug, Clone)]
+pub enum CallerCtx {
+    Undefined,
+    InLoop,
+}
+
+const UD: CallerCtx = CallerCtx::Undefined;
+
 impl Node {
-    pub fn eval(&mut self, stack: &mut StackFrame, allow_thunk: bool) -> Result<Value, Err> {
+    pub fn eval(
+        &mut self,
+        ctx: &CallerCtx,
+        stack: &mut StackFrame,
+        allow_thunk: bool,
+    ) -> Result<Value, Err> {
         match self {
             Node::NumberLiteral { value, .. } => Ok(Value::Number(*value)),
             Node::StringLiteral { value, .. } => Ok(Value::String(value.clone())),
@@ -192,12 +209,12 @@ impl Node {
             Node::ArrayLiteral { value, .. } => {
                 let value_type = match value.is_empty() {
                     true => Type::Empty,
-                    false => value[0].eval(stack, false)?.value_type(),
+                    false => value[0].eval(ctx, stack, false)?.value_type(),
                 };
                 Ok(Value::Array(value_type.clone(), {
                     let mut values = Vec::with_capacity(value.len());
                     for node in value {
-                        let val = node.eval(stack, false)?;
+                        let val = node.eval(ctx, stack, false)?;
                         if val.value_type() != value_type {
                             return Err(Err {
                                 message: t!(
@@ -218,7 +235,7 @@ impl Node {
                 let mut body = HashMap::new();
                 for (field_name, val) in value {
                     // first node must be an identifier
-                    let val = val.eval(stack, false)?;
+                    let val = val.eval(ctx, stack, false)?;
                     body.insert(field_name.clone(), (val.value_type(), val));
                 }
 
@@ -227,7 +244,7 @@ impl Node {
                     body,
                 })
             }
-            Node::EmptyLiteral(..) | Node::EmptyIdentifier { .. } => Ok(Value::Empty),
+            Node::EmptyLiteral { .. } | Node::EmptyIdentifier { .. } => Ok(Value::Empty),
             Node::Identifier { value, position } => {
                 if let Some(val) = stack.get(value) {
                     return Ok(val.clone());
@@ -295,9 +312,9 @@ impl Node {
                     }),
                 }
             }
-            Node::BinaryExpression { .. } => eval_binary_expr_node(self, stack),
+            Node::BinaryExpression { .. } => eval_binary_expr_node(ctx, self, stack),
             Node::IndexingOp { operand, index, .. } => {
-                match operand.eval(stack, false)? {
+                match operand.eval(ctx, stack, false)? {
                     Value::Array(_, vals) => {
                         let idx = to_usize(&(to_number(index, stack)?), index.position())?;
                         match idx >= vals.len() {
@@ -320,7 +337,7 @@ impl Node {
                 start_inclusive,
                 end_exclusive,
                 ..
-            } => match operand.eval(stack, false)? {
+            } => match operand.eval(ctx, stack, false)? {
                 Value::Array(t, mut vals) => match (start_inclusive, end_exclusive) {
                     (Some(x), None) => {
                         // array[start..]
@@ -364,12 +381,12 @@ impl Node {
             } => {
                 let mut arg_results = Vec::new();
                 for arg in arguments {
-                    arg_results.push(arg.eval(stack, false)?);
+                    arg_results.push(arg.eval(&UD, stack, false)?);
                 }
 
-                let fn_value = &function.eval(stack, false)?;
+                let fn_value = &function.eval(ctx, stack, false)?;
 
-                let res = eval_speak_function(stack, fn_value, allow_thunk, &arg_results)?;
+                let res = eval_speak_function(ctx, stack, fn_value, allow_thunk, &arg_results)?;
 
                 Ok(res)
             }
@@ -394,12 +411,43 @@ impl Node {
                     }),
                 }
             }
-            Node::IfExpr { .. } => eval_if_expr_node(self, stack, allow_thunk),
+            Node::IfExpr { .. } => eval_if_expr_node(ctx, self, stack, allow_thunk),
+
+            Node::ForExpr { .. } => eval_for_expr_node(ctx, self, stack, allow_thunk),
+
+            Node::Continueliteral { .. } => match ctx {
+                CallerCtx::InLoop => Ok(Value::ContinueCalled),
+                _ => Err(Err {
+                    message: t!(
+                        "errors.eval_e8",
+                        a = self.string(),
+                        b = self.position().string()
+                    ),
+                    reason: ErrorReason::Runtime,
+                }),
+            },
+
+            Node::BreakLiteral { .. } => match ctx {
+                CallerCtx::InLoop => Ok(Value::BreakCalled),
+                _ => Err(Err {
+                    message: t!(
+                        "errors.eval_e8",
+                        a = self.string(),
+                        b = self.position().string()
+                    ),
+                    reason: ErrorReason::Runtime,
+                }),
+            },
         }
     }
 }
 
-fn eval_if_expr_node(node: &Node, stack: &mut StackFrame, allow_thunk: bool) -> Result<Value, Err> {
+fn eval_if_expr_node(
+    ctx: &CallerCtx,
+    node: &Node,
+    stack: &mut StackFrame,
+    allow_thunk: bool,
+) -> Result<Value, Err> {
     if let Node::IfExpr {
         condition,
         on_true,
@@ -409,14 +457,14 @@ fn eval_if_expr_node(node: &Node, stack: &mut StackFrame, allow_thunk: bool) -> 
     {
         // assert that condition evaluates to boolean value
         let mut condition = condition.as_ref().clone();
-        let val = condition.eval(stack, allow_thunk)?;
+        let val = condition.eval(ctx, stack, allow_thunk)?;
 
         let mut ret = |val| {
             if val {
                 return match on_true {
                     Some(on_true) => {
                         let mut on_true = on_true.as_ref().clone();
-                        on_true.eval(stack, allow_thunk)
+                        on_true.eval(ctx, stack, allow_thunk)
                     }
                     None => Ok(Value::Empty),
                 };
@@ -424,7 +472,7 @@ fn eval_if_expr_node(node: &Node, stack: &mut StackFrame, allow_thunk: bool) -> 
             match on_false {
                 Some(on_false) => {
                     let mut on_false = on_false.as_ref().clone();
-                    on_false.eval(stack, allow_thunk)
+                    on_false.eval(ctx, stack, allow_thunk)
                 }
                 None => Ok(Value::Empty),
             }
@@ -446,11 +494,119 @@ fn eval_if_expr_node(node: &Node, stack: &mut StackFrame, allow_thunk: bool) -> 
 
     Err(Err {
         reason: ErrorReason::System,
-        message: "".to_string(),
+        message: "todo!".to_string(),
     })
 }
 
-fn eval_binary_expr_node(node: &Node, stack: &mut StackFrame) -> Result<Value, Err> {
+fn eval_for_expr_node(
+    ctx: &CallerCtx,
+    node: &Node,
+    stack: &mut StackFrame,
+    allow_thunk: bool,
+) -> Result<Value, Err> {
+    if let Node::ForExpr {
+        variable,
+        iterable,
+        body,
+        position,
+    } = node
+    {
+        let mut iterable = iterable.as_ref().clone();
+        let val = iterable.eval(ctx, stack, allow_thunk)?;
+
+        let var: String;
+        match variable.as_ref() {
+            Node::Identifier { value, .. } => {
+                var = value.clone();
+            }
+            _ => {
+                return Err(Err {
+                    message: t!(
+                        "errors.eval_e7",
+                        a = variable.string(),
+                        b = position.string()
+                    ),
+                    reason: ErrorReason::Runtime,
+                });
+            }
+        }
+
+        match val {
+            Value::String(val) => {
+                // we only loop if there's a body
+                if let Some(body) = body.as_ref().clone() {
+                    let mut stack = stack.clone();
+                    'outer: for c in val.chars() {
+                        stack.set(var.clone(), Value::Number(c as u8 as f64));
+                        let mut body = body.clone();
+                        for stmt in body.iter_mut() {
+                            let ret = stmt.eval(&CallerCtx::InLoop, &mut stack, allow_thunk)?;
+                            match ret {
+                                // if the loop returns an non empty value continue current loop
+                                Value::Empty | Value::Assignment(..) => continue,
+                                // if contine is called continue outer loop
+                                Value::ContinueCalled => continue 'outer,
+                                // if break is called break from outer loop
+                                Value::BreakCalled => break 'outer,
+                                // else return value
+                                _ => return Ok(ret),
+                            }
+                        }
+                    }
+                }
+
+                return Ok(Value::Empty);
+            }
+
+            Value::Array(_, items) => {
+                // we only loop if there's a body
+                if let Some(body) = body.as_ref().clone() {
+                    let mut stack = stack.clone();
+                    'outer: for item in items {
+                        stack.set(var.clone(), item);
+                        let mut body = body.clone();
+                        for stmt in body.iter_mut() {
+                            let ret = stmt.eval(&CallerCtx::InLoop, &mut stack, allow_thunk)?;
+                            match ret {
+                                // if the loop returns an non empty value continue current loop
+                                Value::Empty | Value::Assignment(..) => continue,
+                                // if contine is called continue outer loop
+                                Value::ContinueCalled => continue 'outer,
+                                // if break is called break from outer loop
+                                Value::BreakCalled => break 'outer,
+                                // else return value
+                                _ => return Ok(ret),
+                            }
+                        }
+                    }
+                }
+
+                return Ok(Value::Empty);
+            }
+            _ => {
+                return Err(Err {
+                    message: t!(
+                        "errors.eval_for_expr_node_e1",
+                        a = iterable.string(),
+                        b = position.string()
+                    ),
+                    reason: ErrorReason::Runtime,
+                })
+            }
+        }
+    }
+
+    Err(Err {
+        reason: ErrorReason::System,
+        message: "todo!".to_string(),
+    })
+}
+
+fn eval_binary_expr_node(
+    ctx: &CallerCtx,
+    node: &Node,
+    stack: &mut StackFrame,
+) -> Result<Value, Err> {
     if let Node::BinaryExpression {
         operator,
         left_operand,
@@ -462,11 +618,11 @@ fn eval_binary_expr_node(node: &Node, stack: &mut StackFrame) -> Result<Value, E
             Ok((
                 {
                     let mut l = left_operand.as_ref().clone();
-                    l.eval(stack, false)?
+                    l.eval(ctx, stack, false)?
                 },
                 {
                     let mut r = right_operand.as_ref().clone();
-                    r.eval(stack, false)?
+                    r.eval(ctx, stack, false)?
                 },
             ))
         };
@@ -477,15 +633,20 @@ fn eval_binary_expr_node(node: &Node, stack: &mut StackFrame) -> Result<Value, E
                     Node::Identifier { value, .. } => {
                         // right operand node must evaluate to a value
                         let mut r = right_operand.as_ref().clone();
-                        let right_value = r.eval(stack, false)?;
-                        stack.set(value.clone(), right_value.clone());
+                        let right_value = r.eval(ctx, stack, false)?;
+
+                        // try make an update first, if fails push value to stack
+                        if let Err(_) = stack.up(value.clone(), &right_value) {
+                            stack.set(value.clone(), right_value.clone());
+                        }
+
                         return Ok(Value::Assignment(Box::new(right_value)));
                     }
 
                     Node::IndexingOp { operand, index, .. } => {
                         let mut operand = operand.as_ref().clone();
-                        match &mut operand.eval(stack, false)? {
-                            Value::Array(_, vals) => {
+                        match operand.eval(ctx, stack, false)? {
+                            Value::Array(arr_type, mut vals) => {
                                 let mut index = index.as_ref().clone();
                                 let idx =
                                     to_usize(&(to_number(&mut index, stack)?), index.position())?;
@@ -497,9 +658,12 @@ fn eval_binary_expr_node(node: &Node, stack: &mut StackFrame) -> Result<Value, E
 
                                 // right operand node must evaluate to a value
                                 let mut r = right_operand.as_ref().clone();
-                                let right_value = r.eval(stack, false)?;
+                                let right_value = r.eval(ctx, stack, false)?;
 
                                 vals[idx] = right_value.clone();
+
+                                // update stack
+                                stack.up(operand.string(), &Value::Array(arr_type, vals))?;
 
                                 return Ok(Value::Assignment(Box::new(right_value)));
                             }
@@ -524,50 +688,86 @@ fn eval_binary_expr_node(node: &Node, stack: &mut StackFrame) -> Result<Value, E
                     } => {
                         if let Kind::AccessorOp = l_operator {
                             // left operand is stack name for object
-                            let object = l_left_operand.as_ref().clone().eval(stack, false)?;
+                            let object = l_left_operand.as_ref().clone().eval(ctx, stack, false)?;
                             // right operand is the field value
                             let object_field = l_right_operand.string();
 
-                            // mutate field value
-                            match &mut object.clone() {
-                                Value::Object { name, body } => {
-                                    match body.contains_key(&object_field) {
-                                        true => {
-                                            let right_value = right_operand
-                                                .as_ref()
-                                                .clone()
-                                                .eval(stack, false)?;
-                                            body.insert(
-                                                object_field,
-                                                (right_value.value_type(), right_value),
-                                            );
+                            fn update_field(
+                                ctx: &CallerCtx,
+                                stack: &mut StackFrame,
+                                object: Value,
+                                object_field: String,
+                                l_left_operand: &Box<Node>,
+                                l_position: &Position,
+                                right_operand: &Box<Node>,
+                            ) -> Result<Value, Err> {
+                                // mutate field value
+                                match &mut object.clone() {
+                                    Value::Object { name, body } => {
+                                        match body.contains_key(&object_field) {
+                                            true => {
+                                                let right_value = right_operand
+                                                    .as_ref()
+                                                    .clone()
+                                                    .eval(ctx, stack, false)?;
+                                                body.insert(
+                                                    object_field,
+                                                    (right_value.value_type(), right_value),
+                                                );
 
-                                            stack.up(name.clone(), &object)?;
-                                            return Ok(object);
-                                        }
-                                        false => {
-                                            return Err(Err {
-                                                message: t!(
-                                                    "errors.eval_binary_expr_node_e1",
-                                                    a = name,
-                                                    b = object.string(),
-                                                    c = l_position.string()
-                                                ),
-                                                reason: ErrorReason::Runtime,
-                                            });
+                                                let obj = Value::Object {
+                                                    name: name.to_string(),
+                                                    body: body.clone(),
+                                                };
+
+                                                stack.up(l_left_operand.string(), &obj)?;
+                                                return Ok(obj);
+                                            }
+                                            false => {
+                                                return Err(Err {
+                                                    message: t!(
+                                                        "errors.eval_binary_expr_node_e1",
+                                                        a = name,
+                                                        b = object.string(),
+                                                        c = l_position.string()
+                                                    ),
+                                                    reason: ErrorReason::Runtime,
+                                                });
+                                            }
                                         }
                                     }
-                                }
-                                _ => {
-                                    return Err(Err {
-                                        message: t!(
-                                            "errors.eval_binary_expr_node_e2",
-                                            a = object.string()
-                                        ),
-                                        reason: ErrorReason::System,
-                                    });
+
+                                    Value::Assignment(val) => update_field(
+                                        ctx,
+                                        stack,
+                                        val.as_ref().clone(),
+                                        object_field,
+                                        l_left_operand,
+                                        l_position,
+                                        right_operand,
+                                    ),
+
+                                    _ => {
+                                        return Err(Err {
+                                            message: t!(
+                                                "errors.eval_binary_expr_node_e2",
+                                                a = object.string()
+                                            ),
+                                            reason: ErrorReason::System,
+                                        });
+                                    }
                                 }
                             }
+
+                            return update_field(
+                                ctx,
+                                stack,
+                                object,
+                                object_field,
+                                l_left_operand,
+                                l_position,
+                                right_operand,
+                            );
                         } else {
                             return Err(Err {
                                 message: t!(
@@ -585,7 +785,7 @@ fn eval_binary_expr_node(node: &Node, stack: &mut StackFrame) -> Result<Value, E
                         return Err(Err {
                             message: t!(
                                 "errors.eval_binary_expr_node_e3",
-                                a = left_operand.eval(stack, false)?.string(),
+                                a = left_operand.eval(&UD, stack, false)?.string(),
                                 b = left_operand.position().string()
                             ),
                             reason: ErrorReason::Runtime,
@@ -596,36 +796,48 @@ fn eval_binary_expr_node(node: &Node, stack: &mut StackFrame) -> Result<Value, E
 
             Kind::AccessorOp => {
                 // left operand is stack name for object; right operand is the value
-                let mut left_operand_ = left_operand.as_ref().clone();
-                let object = left_operand_.eval(stack, false)?;
+                let object = left_operand.as_ref().clone().eval(ctx, stack, false)?;
                 let object_field = right_operand.string();
 
-                match &object {
-                    Value::Object { name, body } => match body.contains_key(&object_field) {
-                        true => {
-                            let (_, val) =
-                                body.get(&object_field).expect("check done, value exists");
-                            return Ok(val.clone());
+                fn get_field(
+                    object: Value,
+                    object_field: String,
+                    left_operand: &Box<Node>,
+                ) -> Result<Value, Err> {
+                    match &object {
+                        Value::Object { name, body } => match body.contains_key(&object_field) {
+                            true => {
+                                let (_, val) =
+                                    body.get(&object_field).expect("check done, value exists");
+                                return Ok(val.clone());
+                            }
+                            false => {
+                                return Err(Err {
+                                    message: t!(
+                                        "errors.eval_binary_expr_node_e1",
+                                        a = name,
+                                        b = object.string(),
+                                        c = left_operand.position().string()
+                                    ),
+                                    reason: ErrorReason::Runtime,
+                                });
+                            }
+                        },
+
+                        Value::Assignment(val) => {
+                            get_field(val.as_ref().clone(), object_field, left_operand)
                         }
-                        false => {
+
+                        _ => {
                             return Err(Err {
-                                message: t!(
-                                    "errors.eval_binary_expr_node_e1",
-                                    a = name,
-                                    b = object.string(),
-                                    c = left_operand.position().string()
-                                ),
-                                reason: ErrorReason::Runtime,
+                                message: t!("errors.eval_binary_expr_node_e2", a = object.string()),
+                                reason: ErrorReason::System,
                             });
                         }
-                    },
-                    _ => {
-                        return Err(Err {
-                            message: t!("errors.eval_binary_expr_node_e2", a = object.string()),
-                            reason: ErrorReason::System,
-                        });
                     }
                 }
+
+                return get_field(object, object_field, left_operand);
             }
 
             Kind::AddOp => {
@@ -973,6 +1185,7 @@ fn eval_binary_expr_node(node: &Node, stack: &mut StackFrame) -> Result<Value, E
 
 // Calls into a Speak callback function synchronously.
 fn eval_speak_function(
+    ctx: &CallerCtx,
     stack: &mut StackFrame,
     fn_value: &Value,
     allow_thunk: bool,
@@ -1024,7 +1237,7 @@ fn eval_speak_function(
                     }
 
                     // assert that the return value is what was in the function signature
-                    let res = unwrap_thunk(stack, &mut return_thunk)?;
+                    let res = unwrap_thunk(ctx, stack, &mut return_thunk)?;
                     match sign.2.as_ref() {
                         Node::Identifier { .. } => Ok(res),
                         _ => Err(Err {
@@ -1055,8 +1268,8 @@ fn eval_speak_function(
     }
 }
 
-// Expands out a recursive structure of thunks into a flat for loop control structure.
-fn unwrap_thunk(stack: &mut StackFrame, thunk: &mut Value) -> Result<Value, Err> {
+// Expands out a recursive structure of thunks into a flat for loop control structure
+fn unwrap_thunk(ctx: &CallerCtx, stack: &mut StackFrame, thunk: &mut Value) -> Result<Value, Err> {
     let mut is_thunk = true;
     let mut stacks_added = 0;
     'UNWRAP: while is_thunk {
@@ -1070,7 +1283,7 @@ fn unwrap_thunk(stack: &mut StackFrame, thunk: &mut Value) -> Result<Value, Err>
                     Node::FunctionLiteral { sign, body, .. } => {
                         let mut val: Value;
                         for (i, stmt) in body.iter().enumerate() {
-                            val = stmt.clone().eval(stack, false)?;
+                            val = stmt.clone().eval(ctx, stack, false)?;
                             match val {
                                 Value::FunctionCallThunk { .. } => {
                                     is_thunk = true;
@@ -1080,7 +1293,7 @@ fn unwrap_thunk(stack: &mut StackFrame, thunk: &mut Value) -> Result<Value, Err>
                                 _ => {
                                     // if there's a next evaluation, assignment does not count
                                     if let Value::Assignment(_) = val {
-                                        if i + 1 != body.len() {
+                                        if i + 1 < body.len() {
                                             continue;
                                         }
                                     }
@@ -1155,7 +1368,7 @@ fn to_usize(num: &f64, pos: &Position) -> Result<usize, Err> {
 
 #[inline]
 fn to_number(node: &mut Node, stack: &mut StackFrame) -> Result<f64, Err> {
-    match node.eval(stack, false)? {
+    match node.eval(&UD, stack, false)? {
         Value::Number(idx) => Ok(idx),
         _ => Err(Err {
             message: t!(
@@ -1171,7 +1384,7 @@ fn to_number(node: &mut Node, stack: &mut StackFrame) -> Result<f64, Err> {
 #[cfg(test)]
 mod test {
     use crate::{
-        eval::value::Value,
+        eval::{value::Value, UD},
         lexer::Position,
         parser::Node,
         runtime::{load_builtins, Context},
@@ -1204,7 +1417,7 @@ mod test {
             };
 
             let val = node_fn_call
-                .eval(&mut ctx_test.frame, false)
+                .eval(&UD, &mut ctx_test.frame, false)
                 .expect("this should resolve to empty value");
 
             assert_eq!(val.string(), "");
@@ -1226,7 +1439,7 @@ mod test {
             };
 
             let val = node_fn_call
-                .eval(&mut ctx_test.frame, false)
+                .eval(&UD, &mut ctx_test.frame, false)
                 .expect("this should resolve to a string value");
 
             if let Value::String(_val) = val {
