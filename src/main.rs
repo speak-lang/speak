@@ -50,14 +50,21 @@ fn main() {
             log_interactive("\n> ");
 
             match io::stdin().read_line(&mut input) {
-                Ok(_) => match ctx.exec(&speak, BufReader::new(input.as_bytes())) {
-                    Ok((val, _, _)) => {
-                        log_interactive(&val.string());
+                Ok(_) => {
+                    // TODO: implement locales for exit
+                    if input.trim().eq_ignore_ascii_case("exit") {
+                        return;
                     }
-                    Err(err) => {
-                        log_safe_err(&err.reason, &err.message);
+
+                    match ctx.exec(&speak, BufReader::new(input.as_bytes())) {
+                        Ok((val, _, _)) => {
+                            log_interactive(&val.string());
+                        }
+                        Err(err) => {
+                            log_safe_err(&err.reason, &err.message);
+                        }
                     }
-                },
+                }
                 Err(err) => {
                     log_safe_err(&core::error::ErrorReason::System, &err.to_string());
                 }
