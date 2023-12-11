@@ -59,7 +59,7 @@ pub mod r#type {
                 x if x == t!("types.string") => Type::String,
                 x if x == t!("types.function") => Type::Function,
                 "()" => Type::Empty,
-                _ => Type::Object(type_name.to_string()), // If errorneous, fails at Runtime
+                _ => Type::Object(type_name.to_string()), // If erroneous, fails at Runtime
             }
         }
     }

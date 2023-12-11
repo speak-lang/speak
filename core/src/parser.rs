@@ -617,7 +617,7 @@ fn parse_capsulated_expr(
     idx: usize,
     col_bound: usize,
 ) -> Result<(Node, usize), Err> {
-    // grouped expression that evals to a single expression or a function literal node
+    // grouped expression that evaluates to a single expression or a function literal node
     let (atom, consumed) = parse_expression(&tokens[idx..], false, col_bound)?;
     let idx = idx + consumed;
 
@@ -1024,7 +1024,7 @@ fn parse_function_literal(tokens: &[Tok], col_bound: usize) -> Result<(Node, usi
             value: tokens[idx]
                 .str
                 .clone()
-                .expect("this value is present in an identifer token"),
+                .expect("this value is present in an identifier token"),
             position: tokens[idx].position.clone(),
         }),
         Kind::TypeName(x) => Ok(Node::Identifier {
