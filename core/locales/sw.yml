@@ -1,6 +1,6 @@
 types:
   number: nambari
-  bool: bool
+  bool: bulin
   string: mlolongo
   object: kifaa
   function: kazi

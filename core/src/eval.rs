@@ -162,7 +162,10 @@ pub mod value {
         pub fn string(&self) -> String {
             match self {
                 Value::Number(value) => value.to_string(),
-                Value::Bool(value) => value.to_string(),
+                Value::Bool(value) => match value {
+                    true => t!("literals.true"),
+                    false => t!("literals.false"),
+                },
                 Value::String(value) => value.to_string(),
                 Value::Object { name, body } => {
                     format!("{} ({name}): {:?}", t!("types.object"), body)
