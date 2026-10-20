@@ -3,19 +3,19 @@
 
 # Speak programming language
 
-Speak is an experimental programming language that aims to have configurable keywords. This is in an attempt to allow for the use of multiple written languages as preferred by the programmer.
+Speak is an open-source programming language for learning to code in the language you think in.
 
 </div>
 
-It's main goal is for it to be used as an educational tool for non-english speaking minorities. This can happen using a configuration file that maps these translations to build an interpreter variant. We can have an English variant of Speak, a Swahili variant; and so on.
+Most programming tools assume English. Speak's keywords, builtins and error messages come from locale files, so learners can write code in their native tongue, not only in English. Speak supports English and Swahili today, and each language a community adds, such as Dholuo, Gĩkũyũ, Amharic or Yoruba, becomes one more language students can code in. It is built in the open with the communities it serves, and its first classroom pilot is in Kenya.
 
-It's not meant to do any "heavy lifting" tasks like interacting with networks, writing servers... but once it's stable we can expose these primitives through Rust native functions. At the moment, they are non goals.
+Speak is being built for classrooms with little or no internet: the standard library and lessons will ship inside the interpreter, and it will run offline on low-cost hardware such as a Raspberry Pi. The core is kept buildable for WebAssembly, so it can run in the browser and in mobile learning apps. Beginner programs stay simple; files, processes and networking will arrive as modules for learners ready to grow. See the [roadmap](docs/roadmap.md) for goals, milestones and design decisions.
 
 It is expressive and dynamically typed (although all function signatures must be typed which becomes a runtime error if the types are violated by the function itself or its caller). A speak program is an expression.
 
 ## About
 
-This language is directly inspired by Linus Lee's work on his language [ink](https://www.github.com/thesephist/ink) and his talk from GopherCon [here](https://www.youtube.com/watch?v=ALwmdcFiuGg&t=168s). Examples on how its intended to look like can be found in the samples directory. There's no formal specification yet, so far it's experimental.
+This language is directly inspired by Linus Lee's work on his language [ink](https://www.github.com/thesephist/ink) and his talk from GopherCon [here](https://www.youtube.com/watch?v=ALwmdcFiuGg&t=168s). Examples on how its intended to look like can be found in the samples directory. There's no formal specification yet, so far it's experimental. Writing one is the first ticket on the [roadmap](docs/roadmap.md) (SPK-101).
 
 ## Introduction
 
