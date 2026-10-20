@@ -94,5 +94,9 @@ errors:
   load_builtins_e3: "%{a} can only be called for array and string types"
   load_builtins_e4: mod arguements must be string literals
   load_builtins_e5: Stackframe provided is Nil
-  
-  
+repl:
+  prompt: "> "
+  continuation: ".. "
+  welcome: Welcome to Speak!
+  hint: "Type %{a} or press Ctrl+D to quit."
+  exit: exit
