@@ -63,7 +63,7 @@ This epic turns today's fn-pointer builtins into a real extension API, so files,
 | SPK-203 | Resource handle type | An opaque handle value wraps native resources such as sockets and files, with explicit close and automatic cleanup when dropped. | M | P0 | 104, 201 |
 | SPK-204 | Async native functions | A native function can return a pending task that the event loop completes. | M | P0 | 201, 302 |
 | SPK-205 | Move builtins into std/io | print, println, sprint and len live in a std module, closing the TODO.md item. A prelude keeps beginner programs unchanged. | S | P0 | 202 |
-| SPK-206 | Third-party native extensions | Outside crates can ship native modules without forking the interpreter. Mechanism follows the open decision on dynamic libraries versus WASM components. | XL | P2 | 202 |
+| SPK-206 | Third-party native extensions | Outside crates can ship native modules without forking the interpreter. Runtime-loaded extensions are plain WASM modules run through wasmi, with OS access only through host imports gated by SPK-904. Off by default in mobile apps. No dynamic libraries. | XL | P2 | 202 |
 
 ## Epic 3: Async runtime and event loop
 
@@ -71,7 +71,7 @@ Speak gets a single-threaded event loop like Node: the script runs, then the loo
 
 | ID | Ticket | Done when | Size | Pri | Needs |
 | --- | --- | --- | --- | --- | --- |
-| SPK-301 | Runtime spike and decision | A 2-day spike compares tokio's current-thread runtime with a custom mio loop, records the choice and measures startup cost. | S | P0 |  |
+| SPK-301 | Runtime spike and decision | A 2-day spike compares tokio's current-thread runtime with a custom mio loop, records the choice and measures startup cost. The loop sits behind a small executor interface so the wasm32 build can run on the browser's event loop instead. | S | P0 |  |
 | SPK-302 | Event loop integration | speak run executes the script, then runs the loop until no tasks or handles remain. The REPL keeps the loop alive between lines. | L | P0 | 103, 301 |
 | SPK-303 | Tasks and async/await | A task value and localized async/await keywords exist. Awaiting inside a function suspends it without blocking the loop. | L | P0 | 302 |
 | SPK-304 | Timers | Sleep, timeout and interval exist with cancellation, all localized. | S | P0 | 303 |
@@ -150,7 +150,7 @@ This epic keeps Speak's reason for existing intact as the language grows. Each s
 | SPK-804 | Locale completeness check | CI fails when any locale file is missing a key that en.yml has. | S | P0 |  |
 | SPK-805 | Localized system errors | OS and network errors such as connection refused or file not found map to locale strings rather than raw English from Rust. | M | P0 | 106, 802 |
 | SPK-806 | speak translate | Rewrites a file's keywords and std names into another locale without touching user identifiers or strings. | M | P1 | 802 |
-| SPK-807 | Language-mixing mode | A file can declare several locales, such as Swahili and English, and use keywords from both. The lexer rejects words that are a keyword in one declared locale and an identifier in another. | L | P1 | 801 |
+| SPK-807 | Language-mixing mode | A file can declare several locales, such as Swahili and English, and use keywords from both. Keywords and type names of every declared locale are reserved, and using one as a name is a lex-time error naming both meanings. Builtin and std names can be shadowed. | L | P1 | 801 |
 | SPK-808 | Locale pack guide | A template and guide let a native speaker add a language by editing YAML, with no Rust knowledge. | S | P1 | 802 |
 
 ## Epic 9: Security and the WASM playground
@@ -184,7 +184,7 @@ The longest chain runs SPK-103, 302, 303, 305, 501, 506, 510. SPK-104, 201 and 2
 
 ## Decisions
 
-Four of the six choices that shape the tickets above are settled. The two still open are post-1.0 (P2) or M5 work, so they don't block SPK-103.
+Six choices shape the tickets above. All are settled. Speak targets learners in the browser and in mobile apps, so the core and the std modules that don't need the OS stay buildable for wasm32. Native-only features (raw sockets, processes, runtime-loaded extensions) may compile out there.
 
 | Decision | Ticket | Choice | Why |
 | --- | --- | --- | --- |
@@ -192,8 +192,5 @@ Four of the six choices that shape the tickets above are settled. The two still 
 | Async style | SPK-303 | `async`/`await` keywords, localized in every locale | Explicit, familiar from JS and Python, and works with a tree-walker without stackful coroutines, which keeps the WASM build simple. |
 | Numbers | SPK-108 | Add `i64` integers alongside `f64` | Bytes, indexing and ports need integers. Literals without a dot are integers; integer division yields a float. |
 | Interpreter | SPK-113 | Keep the tree-walker; decide after SPK-105 benchmarks | Fix scoping and the heap first, then let measured numbers decide whether a bytecode VM is worth it. |
-
-### Still open
-
-- Third-party native code (SPK-206). Native dynamic libraries are fast but unsafe. WASM components are sandboxed and also run in the playground. Suggested: WASM components.
-- Language-mixing rules (SPK-807). Decide what happens when a word is a keyword in one declared locale and a normal word in another. Suggested: reject at lex time with a localized message naming both meanings.
+| Third-party native code | SPK-206 | Three tiers. 1: packages in Speak source, which run everywhere. 2: Rust modules compiled into the host app through the SPK-202 registry, behind feature flags. 3: plain WASM modules loaded at run time through wasmi, on the CLI, desktop and browser builds, off by default in mobile apps. No dynamic libraries. | Apple's App Store rule 2.5.2 lets learning apps run downloaded code only if the learner can view and edit its source, so mobile apps rely on tiers 1 and 2. wasmi is a pure interpreter that runs inside the wasm32 build and on iOS without a JIT. It does not support WASM components yet, so Speak adopts them once it does. |
+| Language mixing | SPK-807 | Keywords and type names of every declared locale are reserved; using one as a name is a lex-time error naming both meanings. Builtin and std names can be shadowed by user names. | English type words such as `number`, `string`, `object`, `function` and `array` are common variable names, so the error must explain why a name that worked before became reserved when a locale was added. Shadowing std names keeps the number of reserved words small. |
