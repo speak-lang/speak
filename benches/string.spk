@@ -1,0 +1,5 @@
+build: s string n number -> string
+    if n = 0 ? s
+    build (s + "ab") (n - 1)
+
+println "{}" (len (build "" 2000))
