@@ -7,7 +7,7 @@ Speak is an open-source programming language for learning to code in the languag
 
 </div>
 
-Most programming tools assume English. Speak's keywords, builtins and error messages come from locale files, so the same program can be written in English, in Swahili, and soon in Amharic, Yoruba and other languages. It is built in the open with the communities it serves, and its first classroom pilot is in Kenya.
+Most programming tools assume English. Speak's keywords, builtins and error messages come from locale files, so learners can write code in their native tongue, not only in English. Speak supports English and Swahili today, and each language a community adds, such as Dholuo, Gĩkũyũ, Amharic or Yoruba, becomes one more language students can code in. It is built in the open with the communities it serves, and its first classroom pilot is in Kenya.
 
 Speak is being built for classrooms with little or no internet: the standard library and lessons will ship inside the interpreter, and it will run offline on low-cost hardware such as a Raspberry Pi. The core is kept buildable for WebAssembly, so it can run in the browser and in mobile learning apps. Beginner programs stay simple; files, processes and networking will arrive as modules for learners ready to grow. See the [roadmap](docs/roadmap.md) for goals, milestones and design decisions.
 
