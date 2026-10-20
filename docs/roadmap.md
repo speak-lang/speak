@@ -182,13 +182,18 @@ The 40 P0 tickets fill M1 to M3, ending in a networked Speak that serves a Swahi
 
 The longest chain runs SPK-103, 302, 303, 305, 501, 506, 510. SPK-104, 201 and 203 must also be done before 501 starts, so closures and the shared heap are the first work to begin.
 
-## Open decisions
+## Decisions
 
-Six choices shape the tickets above and are cheapest to make before SPK-103 starts. Each has a suggested default.
+Four of the six choices that shape the tickets above are settled. The two still open are post-1.0 (P2) or M5 work, so they don't block SPK-103.
 
-- Memory model (SPK-104). Reference counting with a cycle collector is simplest to add to the current code. A tracing garbage collector handles cycles natively but means more rewriting. Suggested: reference counting first, with a cycle check in the soak test.
-- Async style (SPK-303). Async/await keywords need localized names in every locale. Callbacks need no new keywords but read worse. Suggested: async/await.
-- Numbers (SPK-108). Keep JavaScript-style floats only, or add integers. Bytes and indexing push toward integers. Suggested: add integers.
-- Tree-walker or bytecode (SPK-113). Suggested: keep the tree-walker and decide after SPK-105 benchmarks run on the fixed scoping.
+| Decision | Ticket | Choice | Why |
+| --- | --- | --- | --- |
+| Memory model | SPK-104 | Reference counting (`Rc<RefCell<..>>`) with a cycle collector | Smallest change from today's code, and deterministic cleanup closes sockets and files promptly. The 1-hour soak test checks that cycles are collected. |
+| Async style | SPK-303 | `async`/`await` keywords, localized in every locale | Explicit, familiar from JS and Python, and works with a tree-walker without stackful coroutines, which keeps the WASM build simple. |
+| Numbers | SPK-108 | Add `i64` integers alongside `f64` | Bytes, indexing and ports need integers. Literals without a dot are integers; integer division yields a float. |
+| Interpreter | SPK-113 | Keep the tree-walker; decide after SPK-105 benchmarks | Fix scoping and the heap first, then let measured numbers decide whether a bytecode VM is worth it. |
+
+### Still open
+
 - Third-party native code (SPK-206). Native dynamic libraries are fast but unsafe. WASM components are sandboxed and also run in the playground. Suggested: WASM components.
 - Language-mixing rules (SPK-807). Decide what happens when a word is a keyword in one declared locale and a normal word in another. Suggested: reject at lex time with a localized message naming both meanings.
