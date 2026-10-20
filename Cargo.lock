@@ -125,7 +125,7 @@ dependencies = [
 
 [[package]]
 name = "core"
-version = "0.1.0"
+version = "0.2.0-dev"
 dependencies = [
  "lazy_static",
  "once_cell",
@@ -532,7 +532,7 @@ dependencies = [
 
 [[package]]
 name = "speak"
-version = "0.1.0"
+version = "0.2.0-dev"
 dependencies = [
  "clap 4.0.32",
  "core",
