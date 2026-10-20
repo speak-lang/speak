@@ -1,14 +1,24 @@
 # Speak: Ticket Backlog for a Full Interpreted Language
 
+## Goals
+
+Speak is an open-source learning tool, built in the open, that lets people learn to program in the language they think in.
+
+- Learners first: schools that teach in Swahili, Amharic, Yoruba and other languages that programming tools ignore. The first pilot is in Kenya, in Swahili and English.
+- Works offline on low-cost hardware: Speak ships with its standard library and lessons built in, and runs on a Raspberry Pi with no internet connection. The core also runs in the browser and in mobile apps through wasm32.
+- Beginner programs stay simple: advanced features arrive as modules, and errors explain themselves in the learner's language.
+- Room to grow: files, processes and networking are there so learners can build real things, and networking doubles as a way to teach how computers talk.
+- Built in the open: MIT licensed, and anyone can add a language by editing YAML (SPK-808).
+
 ## How to use this backlog
 
-This backlog takes Speak from a teaching interpreter to a general-purpose interpreted language with Node-style async networking, in 5 milestones and 72 tickets. Networking, files and processes arrive as standard-library modules written in Rust behind a native API, so the core language stays small.
+This backlog takes Speak from a teaching interpreter to a full learning language that runs offline in classrooms, with Node-style async networking, in 5 milestones and 78 tickets. Networking, files and processes arrive as standard-library modules written in Rust behind a native API, so the core language stays small.
 
 - IDs: `SPK-<epic><nn>`, e.g. SPK-501 is the first networking ticket. Use the ID as the prefix of PR titles and branch names.
 - Size: S = up to 3 days, M = 1 to 2 weeks, L = 3 to 6 weeks, XL = split before starting.
-- Priority: P0 = needed for the networked-Speak milestone, P1 = needed for 1.0, P2 = after 1.0.
+- Priority: P0 = needed for the Kenya classroom pilot (M3), P1 = needed for 1.0, P2 = after 1.0.
 - Needs: tickets that must land first. The critical path is in the milestones section.
-- Labels: one per epic (core, native-api, async, stdlib, net, pkg, tooling, i18n, security).
+- Labels: one per epic (core, native-api, async, stdlib, net, pkg, tooling, i18n, security, classroom).
 
 One rule applies to every ticket: no hard-coded English names. Every keyword, builtin, stdlib function name, type name and error message goes through the locale files, so a Swahili program can open a socket as easily as an English one.
 A second rule protects Speak's edge with beginners: advanced features arrive as modules, so a beginner's FizzBuzz looks the same after this work as it does today.
@@ -44,7 +54,7 @@ Closures, shared references and modules come first, because every later epic bui
 | SPK-104 | Shared references for objects and arrays | Objects and arrays live on a shared heap, so two variables can point at one object. Memory strategy is decided (see open decisions) and cycles do not leak in a 1-hour soak test. | L | P0 | 103 |
 | SPK-105 | Benchmark harness | make bench runs fib(30), string building, JSON round-trip and later HTTP req/s, and stores results in CI to catch regressions. | S | P0 |  |
 | SPK-106 | Errors as values plus catch | Speak code can raise and catch errors with localized keywords. Errors carry a type, message and stack trace with file:line. | L | P0 | 103 |
-| SPK-107 | Error output with source context | Errors print the offending line with a caret under the column, in the active locale. | M | P1 | 106 |
+| SPK-107 | Error output with source context | Errors print the offending line with a caret under the column, in the active locale. | M | P0 | 106 |
 | SPK-108 | New core types: integer, bytes, map | Integers coexist with floats. A bytes type supports slicing and encoding. A map type takes arbitrary string keys without a declared object name. | L | P0 | 104 |
 | SPK-109 | Unicode correctness | len counts characters, for over a string yields one-character strings, and slicing is character-based. Tests cover Amharic and Yoruba text. | S | P0 | 102 |
 | SPK-110 | Enforce declared return types | A function returning the wrong type raises a localized runtime error, as the README promises. | S | P1 | 102 |
@@ -97,7 +107,7 @@ Nine std modules give Speak the everyday reach of Node or Python. Each module sh
 
 ## Epic 5: Networking
 
-The target demo is an HTTP JSON API written entirely in Swahili Speak. Native code does the protocol work, using Rust crates such as tokio, rustls and hyper, while Speak exposes it through localized streams and handlers.
+Networking is taught, not just shipped: the M3 demo is a chat between two classroom Raspberry Pis written in Swahili, alongside the simulated network (SPK-903) for classes without a local network. Native code does the protocol work, using Rust crates such as tokio, rustls and hyper, while Speak exposes it through localized streams and handlers.
 
 | ID | Ticket | Done when | Size | Pri | Needs |
 | --- | --- | --- | --- | --- | --- |
@@ -131,10 +141,10 @@ A test runner and a better REPL come first because they speed up every other epi
 | ID | Ticket | Done when | Size | Pri | Needs |
 | --- | --- | --- | --- | --- | --- |
 | SPK-701 | speak test | Finds `*_test.spk` files, runs them, reports pass and fail counts in the active locale, and exits non-zero on failure. | M | P0 | 409, 112 |
-| SPK-702 | REPL upgrade | Line editing and history through rustyline, multi-line input, and a localized exit command, replacing the hard-coded English exit in main.rs. | S | P1 |  |
+| SPK-702 | REPL upgrade | Line editing and history through rustyline, multi-line input, and a localized exit command, replacing the hard-coded English exit in main.rs. | S | P0 |  |
 | SPK-703 | speak fmt | Formats code consistently and keeps each file's keywords in the language they were written in. | M | P1 | 101 |
 | SPK-704 | Language server | Diagnostics, go-to-definition, hover with localized docs, and completion of keywords and std names in the file's locale. | L | P1 | 112, 202 |
-| SPK-705 | Release targets | The release workflow adds Linux ARM64, macOS Apple Silicon and Android (Termux) to the current Windows, Linux x86-64 and Intel macOS builds, plus an install script. | S | P1 |  |
+| SPK-705 | Release targets | The release workflow adds macOS Apple Silicon and Android (Termux) to the current Windows, Linux x86-64 and Intel macOS builds, plus an install script. | S | P1 |  |
 | SPK-706 | speak doc | Generates reference pages from doc comments, one set per locale. | M | P2 | 704 |
 | SPK-707 | Debugger | Breakpoints and stepping through the Debug Adapter Protocol, usable from VS Code. | XL | P2 | 704 |
 
@@ -161,11 +171,24 @@ Once Speak can touch files and networks, scripts need permissions, and the brows
 | --- | --- | --- | --- | --- | --- |
 | SPK-901 | Keep the WASM build green | CI builds core for wasm32. Native-only modules compile out behind feature flags, and the playground runs every non-network sample. | M | P0 | 202 |
 | SPK-902 | Browser-backed std modules | In the playground, std/http client calls go through the browser's fetch and std/fs uses an in-memory file system. | M | P1 | 901, 505 |
-| SPK-903 | Simulated network for teaching | An in-memory network lets several Speak "machines" in one playground exchange messages, for teaching system design without real sockets. | M | P1 | 901, 501 |
+| SPK-903 | Simulated network for teaching | An in-memory network lets several Speak "machines" in one playground exchange messages, for teaching system design without real sockets. | M | P0 | 901, 501 |
 | SPK-904 | Permission flags | File, network, environment and process access are denied by default and granted with flags such as --allow-net, as Deno does. | M | P0 | 202 |
 | SPK-905 | Resource limits | Limits on memory, run time and recursion depth, for the playground and classrooms. | M | P1 | 302 |
 | SPK-906 | Fuzzing | cargo-fuzz targets for the lexer, parser and JSON module run nightly. | S | P1 | 405 |
 | SPK-907 | Package integrity | Installs verify lockfile hashes, and packages can be signed. | M | P2 | 602 |
+
+## Epic 10: Classroom and Raspberry Pi
+
+Everything a school needs to use Speak with no internet connection, on hardware a school can afford. The standard library ships inside the interpreter, so a fresh install needs nothing else.
+
+| ID | Ticket | Done when | Size | Pri | Needs |
+| --- | --- | --- | --- | --- | --- |
+| SPK-1001 | Raspberry Pi as a tested target | CI runs the conformance suite on aarch64 and armv7 Linux, and releases ship both, covering the Pi 4, Pi 5, Pi 400 and Zero 2 W. | S | P0 | 102 |
+| SPK-1002 | Standard library built in | Every std module, native and Speak-written, is embedded in the binary. A fresh install runs every sample and lesson offline, and the std version matches the interpreter version. | M | P0 | 202, 205 |
+| SPK-1003 | Offline lessons | speak learn opens a lesson series in English and Swahili that runs and checks exercises with no network. Lessons are plain Speak files a teacher can read and edit. | M | P0 | 1002, 701 |
+| SPK-1004 | Beginner editor | A full-screen terminal editor with a run key, syntax colours in the file's locale and the SPK-107 error panel. It runs on Raspberry Pi OS Lite without a desktop, on screens down to 1024×600. | L | P0 | 107, 702 |
+| SPK-1005 | Classroom SD card image | A Raspberry Pi OS image boots straight into a Speak launcher with the editor, lessons and std preinstalled. The system is read-only so power cuts can't corrupt it, and student work lives on a writable partition. | M | P0 | 1001, 1003, 1004 |
+| SPK-1006 | Offline package bundles | speak add <path> installs a package from a USB stick or local folder, so teachers can share packages with no internet. | S | P1 | 602 |
 
 ## Milestones and sequencing
 
@@ -173,14 +196,14 @@ Once Speak can touch files and networks, scripts need permissions, and the brows
 | --- | --- | --- | --- |
 | M1 Foundations · v0.2 | SPK-101 to 106, 108, 109, 112, 801, 804 (11) | Spec and conformance tests, lexical closures, shared heap, catchable errors, integers/bytes/maps, Unicode fixes, working imports, per-file locale | Every sample passes in English and Swahili; closure and soak tests are green |
 | M2 Runtime · v0.3 | SPK-201 to 205, 301 to 306, 401, 402, 404 to 406, 409, 701, 802, 805, 901, 904 (22) | Native extension API, event loop, async/await, timers, streams, fs/os/time/json/text modules, test runner, permissions, WASM build kept green | An async file read and a timer work in both locales, and the playground still builds |
-| M3 Networked Speak · v0.4 | SPK-501 to 506, 510 (7) | TCP, DNS, TLS, URL parsing, HTTP client and server; echo, chat and JSON API examples in English and Swahili | The Swahili JSON API reaches the req/s target set in SPK-105 |
-| M4 Ecosystem · v0.5 | SPK-107, 110, 111, 403, 407, 408, 507 to 509, 601 to 604, 702 to 705, 803, 806, 808, 902, 903, 905, 906 (24) | Packages from git, router in Speak, UDP, WebSockets, processes, crypto, formatter, language server, cross-language imports, translate, teaching network | A package installs from git and imports cleanly from a file in another locale |
+| M3 Classroom pilot · v0.4 | SPK-107, 501 to 506, 510, 702, 903, 1001 to 1005 (15) | Pi build, built-in std, offline lessons, beginner editor, SD card image, clear errors, better REPL; TCP, DNS, TLS, URL parsing, HTTP, the simulated network, and chat and JSON API examples in English and Swahili | In the Kenya pilot, a class writes and runs Swahili programs on Pis with no internet, including a chat between two Pis on the classroom network |
+| M4 Ecosystem · v0.5 | SPK-110, 111, 403, 407, 408, 507 to 509, 601 to 604, 703 to 705, 803, 806, 808, 902, 905, 906, 1006 (22) | Packages from git and USB, router in Speak, UDP, WebSockets, processes, crypto, formatter, language server, cross-language imports, translate | A package installs from git and imports cleanly from a file in another locale |
 | M5 Speak 1.0 | SPK-807, 113 (2) | Language-mixing mode, then a spec freeze; bytecode VM only if benchmarks demand it | — |
 | After 1.0 (P2) | SPK-206, 307, 605, 706, 707, 907 | Hosted registry, debugger, docs generator, workers, third-party native code, package signing | — |
 
-The 40 P0 tickets fill M1 to M3, ending in a networked Speak that serves a Swahili HTTP API. M4 and M5 carry the 26 P1 tickets to 1.0, and the 6 P2 tickets wait until after it.
+The 48 P0 tickets fill M1 to M3, ending in the Kenya classroom pilot. M4 and M5 carry the 24 P1 tickets to 1.0, and the 6 P2 tickets wait until after it.
 
-The longest chain runs SPK-103, 302, 303, 305, 501, 506, 510. SPK-104, 201 and 203 must also be done before 501 starts, so closures and the shared heap are the first work to begin.
+The longest chain runs SPK-103, 302, 303, 305, 501, 506, 510. SPK-104, 201 and 203 must also be done before 501 starts, so closures and the shared heap are the first work to begin. The SD card image (SPK-1005) closes M3 and depends on the editor, lessons and Pi build, which can run alongside the networking chain.
 
 ## Decisions
 

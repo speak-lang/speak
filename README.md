@@ -3,13 +3,13 @@
 
 # Speak programming language
 
-Speak is an experimental programming language that aims to have configurable keywords. This is in an attempt to allow for the use of multiple written languages as preferred by the programmer.
+Speak is an open-source programming language for learning to code in the language you think in.
 
 </div>
 
-It's main goal is for it to be used as an educational tool for non-english speaking minorities. This can happen using a configuration file that maps these translations to build an interpreter variant. We can have an English variant of Speak, a Swahili variant; and so on.
+Most programming tools assume English. Speak's keywords, builtins and error messages come from locale files, so the same program can be written in English, in Swahili, and soon in Amharic, Yoruba and other languages. It is built in the open with the communities it serves, and its first classroom pilot is in Kenya.
 
-Speak is growing from a teaching interpreter into a general-purpose language: closures, modules, a standard library, async/await and networking, all localized, so a Swahili program can open a socket as easily as an English one. Advanced features arrive as modules, so beginner programs stay as simple as they are today. The core stays buildable for WebAssembly so Speak can run in the browser and in mobile learning apps. See the [roadmap](docs/roadmap.md) for the milestones, tickets and design decisions.
+Speak is being built for classrooms with little or no internet: the standard library and lessons will ship inside the interpreter, and it will run offline on low-cost hardware such as a Raspberry Pi. The core is kept buildable for WebAssembly, so it can run in the browser and in mobile learning apps. Beginner programs stay simple; files, processes and networking will arrive as modules for learners ready to grow. See the [roadmap](docs/roadmap.md) for goals, milestones and design decisions.
 
 It is expressive and dynamically typed (although all function signatures must be typed which becomes a runtime error if the types are violated by the function itself or its caller). A speak program is an expression.
 
