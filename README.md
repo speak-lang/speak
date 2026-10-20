@@ -9,13 +9,13 @@ Speak is an experimental programming language that aims to have configurable key
 
 It's main goal is for it to be used as an educational tool for non-english speaking minorities. This can happen using a configuration file that maps these translations to build an interpreter variant. We can have an English variant of Speak, a Swahili variant; and so on.
 
-It's not meant to do any "heavy lifting" tasks like interacting with networks, writing servers... but once it's stable we can expose these primitives through Rust native functions. At the moment, they are non goals.
+Speak is growing from a teaching interpreter into a general-purpose language: closures, modules, a standard library, async/await and networking, all localized, so a Swahili program can open a socket as easily as an English one. Advanced features arrive as modules, so beginner programs stay as simple as they are today. The core stays buildable for WebAssembly so Speak can run in the browser and in mobile learning apps. See the [roadmap](docs/roadmap.md) for the milestones, tickets and design decisions.
 
 It is expressive and dynamically typed (although all function signatures must be typed which becomes a runtime error if the types are violated by the function itself or its caller). A speak program is an expression.
 
 ## About
 
-This language is directly inspired by Linus Lee's work on his language [ink](https://www.github.com/thesephist/ink) and his talk from GopherCon [here](https://www.youtube.com/watch?v=ALwmdcFiuGg&t=168s). Examples on how its intended to look like can be found in the samples directory. There's no formal specification yet, so far it's experimental.
+This language is directly inspired by Linus Lee's work on his language [ink](https://www.github.com/thesephist/ink) and his talk from GopherCon [here](https://www.youtube.com/watch?v=ALwmdcFiuGg&t=168s). Examples on how its intended to look like can be found in the samples directory. There's no formal specification yet, so far it's experimental. Writing one is the first ticket on the [roadmap](docs/roadmap.md) (SPK-101).
 
 ## Introduction
 
