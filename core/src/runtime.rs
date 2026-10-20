@@ -1,12 +1,11 @@
 use super::{
     error::{Err, ErrorReason},
-    eval::{value::Value, CallerCtx},
+    eval::{CallerCtx, value::Value},
     lexer::tokenize,
     log::log_debug,
-    parser::{parse, Node},
+    parser::{Node, parse},
 };
 use crate::lexer::Tok;
-use rust_i18n::t;
 use std::{collections::HashMap, fmt, fs, io::BufReader};
 
 pub const MAX_PRINT_LEN: usize = 120;
@@ -62,7 +61,7 @@ impl StackFrame {
                 Ok(())
             }
             StackFrame::Nil => Err(Err {
-                message: t!("errors.pop_frame_e"),
+                message: tr!("errors.pop_frame_e"),
                 reason: ErrorReason::Assert,
             }),
         }
@@ -113,7 +112,7 @@ impl StackFrame {
         }
 
         Err(Err {
-            message: t!("errors.up_e", a = name),
+            message: tr!("errors.up_e", a = name),
             reason: ErrorReason::Assert,
         })
     }
@@ -231,7 +230,7 @@ impl Context {
                 Ok(val)
             }
             Err(err) => Err(Err {
-                message: t!("errors.exec_path_e", a = err),
+                message: tr!("errors.exec_path_e", a = err),
                 reason: ErrorReason::System,
             }),
         }
@@ -252,8 +251,8 @@ impl fmt::Debug for NativeFn {
         write!(
             f,
             "{} {{ {}: {} }}",
-            t!("types.native_function"),
-            t!("misc.name"),
+            tr!("types.native_function"),
+            tr!("misc.name"),
             self.0
         )
     }
@@ -263,13 +262,13 @@ impl fmt::Debug for NativeFn {
 pub fn load_builtins(ctx: &mut Context) -> Result<(), Err> {
     match &mut ctx.frame {
         StackFrame::Frame { frame, .. } => {
-            let key = t!("builtins.print");
+            let key = tr!("builtins.print");
             frame.set(
                 key.clone(),
                 Value::NativeFunction(NativeFunction(key, |_, inputs| {
                     if inputs.is_empty() {
                         return Err(Err {
-                            message: t!("errors.load_builtins_e1", a = t!("builtins.print")),
+                            message: tr!("errors.load_builtins_e1", a = tr!("builtins.print")),
                             reason: ErrorReason::Runtime,
                         });
                     }
@@ -292,7 +291,7 @@ pub fn load_builtins(ctx: &mut Context) -> Result<(), Err> {
                 })),
             );
 
-            let key = t!("builtins.println");
+            let key = tr!("builtins.println");
             frame.set(
                 key.clone(),
                 Value::NativeFunction(NativeFunction(key, |_, inputs| {
@@ -314,13 +313,13 @@ pub fn load_builtins(ctx: &mut Context) -> Result<(), Err> {
                 })),
             );
 
-            let key = t!("builtins.sprint");
+            let key = tr!("builtins.sprint");
             frame.set(
                 key.clone(),
                 Value::NativeFunction(NativeFunction(key, |_, inputs| {
                     if inputs.is_empty() {
                         return Err(Err {
-                            message: t!("errors.load_builtins_e1", a = t!("builtins.sprint")),
+                            message: tr!("errors.load_builtins_e1", a = tr!("builtins.sprint")),
                             reason: ErrorReason::Runtime,
                         });
                     }
@@ -340,13 +339,13 @@ pub fn load_builtins(ctx: &mut Context) -> Result<(), Err> {
                 })),
             );
 
-            let key = t!("builtins.len");
+            let key = tr!("builtins.len");
             frame.set(
                 key.clone(),
                 Value::NativeFunction(NativeFunction(key, |_, inputs| {
                     if inputs.len() != 1 {
                         return Err(Err {
-                            message: t!("errors.load_builtins_e2", a = t!("builtins.len")),
+                            message: tr!("errors.load_builtins_e2", a = tr!("builtins.len")),
                             reason: ErrorReason::Runtime,
                         });
                     }
@@ -355,20 +354,20 @@ pub fn load_builtins(ctx: &mut Context) -> Result<(), Err> {
                         Value::String(val) => Ok(Value::Number(val.len() as f64)),
                         Value::Array(_, val) => Ok(Value::Number(val.len() as f64)),
                         _ => Err(Err {
-                            message: t!("errors.load_builtins_e3", a = t!("builtins.len")),
+                            message: tr!("errors.load_builtins_e3", a = tr!("builtins.len")),
                             reason: ErrorReason::Runtime,
                         }),
                     }
                 })),
             );
 
-            let key = t!("builtins.mod");
+            let key = tr!("builtins.mod");
             frame.set(
                 key.clone(),
                 Value::NativeFunction(NativeFunction(
                     key,
                     |_stack: &mut StackFrame, inputs: &[Value]| -> Result<Value, Err> {
-                        for i in inputs {
+                        if let Some(i) = inputs.first() {
                             match i {
                                 Value::String(_path) => {
                                     // TODO: load data to stack
@@ -376,7 +375,7 @@ pub fn load_builtins(ctx: &mut Context) -> Result<(), Err> {
                                 }
                                 _ => {
                                     return Err(Err {
-                                        message: t!("errors.load_builtins_e4"),
+                                        message: tr!("errors.load_builtins_e4"),
                                         reason: ErrorReason::Runtime,
                                     });
                                 }
@@ -392,7 +391,7 @@ pub fn load_builtins(ctx: &mut Context) -> Result<(), Err> {
         }
 
         StackFrame::Nil => Err(Err {
-            message: t!("errors.load_builtins_e5"),
+            message: tr!("errors.load_builtins_e5"),
             reason: ErrorReason::Assert,
         }),
     }
@@ -408,10 +407,12 @@ mod tests {
 
         // test stackframe.set(), stackframe.get()
         frame.set("a".to_string(), Value::String("hello".to_string()));
-        assert!(frame
-            .get("a")
-            .expect("key must be present")
-            .equals(Value::String("hello".to_string())));
+        assert!(
+            frame
+                .get("a")
+                .expect("key must be present")
+                .equals(Value::String("hello".to_string()))
+        );
 
         // test stackframe.string()
         assert_eq!(
@@ -423,10 +424,12 @@ mod tests {
         frame
             .up("a".to_string(), &Value::String("mutated value".to_string()))
             .expect("this calls to an already initialized variable on the stack");
-        assert!(frame
-            .get("a")
-            .expect("key must be present")
-            .equals(Value::String("mutated value".to_string())));
+        assert!(
+            frame
+                .get("a")
+                .expect("key must be present")
+                .equals(Value::String("mutated value".to_string()))
+        );
 
         // test stackframe.get, in parent frame
         let frame = StackFrame::Frame {

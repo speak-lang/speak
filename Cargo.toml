@@ -1,7 +1,8 @@
 [package]
 name = "speak"
 version = "0.2.0-dev"
-edition = "2021"
+edition = "2024"
+rust-version = "1.98.1"
 description = """Speak is an experimental programming language that aims to have configurable keywords. \
 This is to allow for the use of any written human language as preferred by the programmer."""
 
@@ -11,7 +12,6 @@ lto = true
 codegen-units = 1
 
 [dependencies]
-clap = { version = "4.0.32", features = ["derive"] }
-lazy_static = "1.4.0"
-core = {  path = "./core" }
-rustyline = "12"
+clap = { version = "4.6.7", features = ["derive"] }
+speak-core = { path = "./core" }
+rustyline = "19.0.0"

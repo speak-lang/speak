@@ -1,9 +1,9 @@
 use clap::{Parser, Subcommand};
-use core::{
+use rustyline::{DefaultEditor, error::ReadlineError};
+use speak_core::{
     log::{log_interactive, log_safe_err},
     runtime::Context,
 };
-use rustyline::{error::ReadlineError, DefaultEditor};
 use std::{env, io::BufReader};
 
 static SPEAK: &str = "SPEAK";
@@ -74,7 +74,7 @@ fn is_incomplete(input: &str) -> bool {
 }
 
 fn repl(ctx: &mut Context, speak: &str) {
-    let t = |key: &str, arg: &str| core::repl_text(speak, key, arg);
+    let t = |key: &str, arg: &str| speak_core::repl_text(speak, key, arg);
     let exit = t("exit", "");
     let history = env::var_os("HOME")
         .or_else(|| env::var_os("USERPROFILE"))
@@ -82,7 +82,7 @@ fn repl(ctx: &mut Context, speak: &str) {
 
     let mut rl = match DefaultEditor::new() {
         Ok(rl) => rl,
-        Err(err) => return log_safe_err(&core::error::ErrorReason::System, &err.to_string()),
+        Err(err) => return log_safe_err(&speak_core::error::ErrorReason::System, &err.to_string()),
     };
     if let Some(h) = &history {
         let _ = rl.load_history(h);
@@ -119,7 +119,7 @@ fn repl(ctx: &mut Context, speak: &str) {
             Err(ReadlineError::Interrupted) => input.clear(),
             Err(ReadlineError::Eof) => break,
             Err(err) => {
-                log_safe_err(&core::error::ErrorReason::System, &err.to_string());
+                log_safe_err(&speak_core::error::ErrorReason::System, &err.to_string());
                 break;
             }
         }

@@ -1,3 +1,12 @@
+rust_i18n::i18n!("locales");
+
+// rust-i18n 4 returns Cow<str>; the interpreter's messages are owned Strings.
+macro_rules! tr {
+    ($($args:tt)*) => {
+        ::rust_i18n::t!($($args)*).to_string()
+    };
+}
+
 pub mod error;
 pub mod eval;
 pub mod lexer;
@@ -5,13 +14,8 @@ pub mod log;
 pub mod parser;
 pub mod runtime;
 
-#[macro_use]
-extern crate lazy_static;
-
-rust_i18n::i18n!("locales");
-
 /// Looks up a REPL string (`repl.<key>`) in the given locale; `arg` fills `%{a}`.
 pub fn repl_text(locale: &str, key: &str, arg: &str) -> String {
     let key = format!("repl.{}", key);
-    rust_i18n::t!(&key, locale = locale, a = arg)
+    tr!(&key, locale = locale, a = arg)
 }

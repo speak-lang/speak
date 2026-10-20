@@ -4,7 +4,6 @@ use super::{
     lexer::{Kind, Position, Tok},
     log::log_debug,
 };
-use rust_i18n::t;
 use std::fmt::Debug;
 
 /// Node represents an abstract syntax tree (AST) node in a Speak program.
@@ -101,7 +100,7 @@ impl Node {
             Node::BoolLiteral { value, .. } => value.to_string(),
             Node::ArrayLiteral { value, .. } => format!(
                 "{} ([{}])",
-                t!("types.array"),
+                tr!("types.array"),
                 if value.is_empty() {
                     Type::Empty.string()
                 } else {
@@ -117,7 +116,7 @@ impl Node {
             Node::ObjectLiteral { name, value, .. } => {
                 format!(
                     "{} ({}) {{\n{}}}",
-                    t!("types.object"),
+                    tr!("types.object"),
                     name,
                     value
                         .iter()
@@ -181,14 +180,14 @@ impl Node {
                     args.push_str(&format!("({})", arg.string()));
                     args.push_str(", ");
                 }
-                format!("{} ({}) on ({})", t!("misc.call"), function.string(), args)
+                format!("{} ({}) on ({})", tr!("misc.call"), function.string(), args)
             }
             Node::FunctionLiteral {
                 sign: signature, ..
             } => format!(
                 "{} {} '{}: {} -> {}'",
-                t!("types.function"),
-                t!("misc.literal"),
+                tr!("types.function"),
+                tr!("misc.literal"),
                 signature.0.string(),
                 signature
                     .1
@@ -208,7 +207,7 @@ impl Node {
             } => {
                 let mut s = format!(
                     "{} ({}): ({})",
-                    t!("literals.if"),
+                    tr!("literals.if"),
                     position.string(),
                     condition.string()
                 );
@@ -226,19 +225,19 @@ impl Node {
                 body: _,
                 position,
             } => {
-                return format!(
+                format!(
                     "{} ({}): {} in ({})",
-                    t!("literals.for"),
+                    tr!("literals.for"),
                     position.string(),
                     variable.string(),
                     iterable.string()
                 )
             }
             Node::Continueliteral { position } => {
-                return format!("{} ({})", t!("literals.continue"), position.string())
+                format!("{} ({})", tr!("literals.continue"), position.string())
             }
             Node::BreakLiteral { position } => {
-                return format!("{} ({})", t!("literals.break"), position.string())
+                format!("{} ({})", tr!("literals.break"), position.string())
             }
         }
     }
@@ -365,7 +364,7 @@ fn parse_expression(
         _ => match parsing_fn_args {
             true => Ok((atom, idx - 1)),
             false => Err(Err {
-                message: t!(
+                message: tr!(
                     "errors.parse_expression_e",
                     a = next_tok.kind.string(),
                     b = next_tok.position.string()
@@ -564,7 +563,7 @@ fn parse_atom(
                     position: tok.position.clone(),
                 },
                 idx,
-            ))
+            ));
         }
 
         Kind::EmptyIdentifier => {
@@ -578,7 +577,7 @@ fn parse_atom(
 
         _ => {
             return Err(Err {
-                message: t!(
+                message: tr!(
                     "errors.parse_atom_e",
                     a = tok.kind.string(),
                     b = tok.position.string()
@@ -626,7 +625,7 @@ fn parse_capsulated_expr(
     match tokens[idx].kind {
         Kind::RightParen => Ok((atom, idx + 1)), // +1 for the RightParen
         _ => Err(Err {
-            message: t!(
+            message: tr!(
                 "errors.parse_capsulated_expr_e",
                 a = tokens[idx - 1].string()
             ),
@@ -708,7 +707,7 @@ fn parse_array_op(
                 idx + 1, // +1 for Kind::RightBracket consumed
             )),
             _ => Err(Err {
-                message: t!(
+                message: tr!(
                     "errors.parse_array_op_e1",
                     a = tokens[idx].string(),
                     b = tokens[idx].position.string(),
@@ -752,7 +751,7 @@ fn parse_array_op(
                     ))
                 }
                 _ => Err(Err {
-                    message: t!(
+                    message: tr!(
                         "errors.parse_array_op_e2",
                         a = tokens[idx].string(),
                         b = tokens[idx].position.string()
@@ -779,7 +778,7 @@ fn parse_object_literal(tokens: &[Tok], name: Node) -> Result<(Node, usize), Err
                 position: tokens[idx].position.clone(),
             }),
             _ => Err(Err {
-                message: t!(
+                message: tr!(
                     "errors.parse_object_literal_e1",
                     a = tokens[idx].position.string()
                 ),
@@ -815,7 +814,7 @@ fn parse_object_literal(tokens: &[Tok], name: Node) -> Result<(Node, usize), Err
                     }
                     Kind::RightBrace => Ok(field_value),
                     _ => Err(Err {
-                        message: t!(
+                        message: tr!(
                             "errors.parse_object_literal_e1",
                             a = tokens[idx].position.string()
                         ),
@@ -824,7 +823,7 @@ fn parse_object_literal(tokens: &[Tok], name: Node) -> Result<(Node, usize), Err
                 }
             }
             _ => Err(Err {
-                message: t!(
+                message: tr!(
                     "errors.parse_object_literal_e2",
                     a = tokens[idx].position.string(),
                 ),
@@ -886,9 +885,9 @@ fn parse_for_expr(for_token: &Tok, tokens: &[Tok], col_bound: usize) -> Result<(
     guard_unexpected_input_end(tokens, idx)?;
     if tokens[idx].kind != Kind::In {
         return Err(Err {
-            message: t!(
+            message: tr!(
                 "errors.parse_for_expr_e1",
-                a = t!("literals.in"),
+                a = tr!("literals.in"),
                 b = tokens[idx].position.string(),
             ),
             reason: ErrorReason::Syntax,
@@ -983,7 +982,7 @@ fn parse_function_call(
 fn parse_function_literal(tokens: &[Tok], col_bound: usize) -> Result<(Node, usize), Err> {
     if col_bound > 1 && tokens[0].position.column <= col_bound {
         return Err(Err {
-            message: t!(
+            message: tr!(
                 "errors.parse_function_literal_e1",
                 a = tokens[0].position.string()
             ),
@@ -1032,7 +1031,7 @@ fn parse_function_literal(tokens: &[Tok], col_bound: usize) -> Result<(Node, usi
             position: tokens[idx].position.clone(),
         }),
         _ => Err(Err {
-            message: t!(
+            message: tr!(
                 "errors.parse_function_literal_e2",
                 a = tokens[idx].kind.string(),
                 b = tokens[idx].position.string()
@@ -1082,7 +1081,7 @@ fn parse_fn_sign_args(tokens: &[Tok]) -> Result<(Vec<(Node, Node)>, usize), Err>
             Kind::TypeName(x) => {
                 if arg_types.len() > args.len() {
                     return Err(Err {
-                        message: t!(
+                        message: tr!(
                             "errors.parse_fn_sign_args_e1",
                             a = tokens[idx].position.string()
                         ),
@@ -1101,7 +1100,7 @@ fn parse_fn_sign_args(tokens: &[Tok]) -> Result<(Vec<(Node, Node)>, usize), Err>
 
             _ => {
                 return Err(Err {
-                    message: t!(
+                    message: tr!(
                         "errors.parse_fn_sign_args_e2",
                         a = tokens[idx].string(),
                         b = tokens[idx].position.string()
@@ -1113,14 +1112,14 @@ fn parse_fn_sign_args(tokens: &[Tok]) -> Result<(Vec<(Node, Node)>, usize), Err>
         idx += 1;
     }
 
-    Ok((args.into_iter().zip(arg_types.into_iter()).collect(), idx))
+    Ok((args.into_iter().zip(arg_types).collect(), idx))
 }
 
 fn guard_unexpected_input_end(tokens: &[Tok], idx: usize) -> Result<(), Err> {
     if idx >= tokens.len() {
         if tokens.is_empty() {
             return Err(Err {
-                message: t!(
+                message: tr!(
                     "errors.guard_unexpected_input_end_e1",
                     a = tokens[tokens.len() - 1].kind.string()
                 ),
@@ -1129,7 +1128,7 @@ fn guard_unexpected_input_end(tokens: &[Tok], idx: usize) -> Result<(), Err> {
         }
 
         return Err(Err {
-            message: t!("errors.guard_unexpected_input_end_e2"),
+            message: tr!("errors.guard_unexpected_input_end_e2"),
             reason: ErrorReason::Syntax,
         });
     }

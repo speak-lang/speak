@@ -8,11 +8,9 @@ use super::{
     parser::Node,
     runtime::{StackFrame, VTable},
 };
-use rust_i18n::t;
 use std::collections::HashMap;
 
 pub mod r#type {
-    use rust_i18n::t;
 
     #[derive(Debug, PartialEq, Eq, Clone)]
     pub enum Type {
@@ -42,22 +40,22 @@ pub mod r#type {
     impl Type {
         pub fn string(&self) -> String {
             match self {
-                Type::Number => t!("types.number"),
-                Type::Bool => t!("types.bool"),
-                Type::String => t!("types.string"),
-                Type::Object(obj) => format!("{}: {}", t!("types.object"), obj),
+                Type::Number => tr!("types.number"),
+                Type::Bool => tr!("types.bool"),
+                Type::String => tr!("types.string"),
+                Type::Object(obj) => format!("{}: {}", tr!("types.object"), obj),
                 Type::Array(t) => format!("[]{}", t.string()),
-                Type::Function => t!("types.function"),
+                Type::Function => tr!("types.function"),
                 Type::Empty => "()".to_string(),
             }
         }
 
         pub fn to_type(type_name: &str) -> Type {
             match type_name {
-                x if x == t!("types.number") => Type::Number,
-                x if x == t!("types.bool") => Type::Bool,
-                x if x == t!("types.string") => Type::String,
-                x if x == t!("types.function") => Type::Function,
+                x if x == tr!("types.number") => Type::Number,
+                x if x == tr!("types.bool") => Type::Bool,
+                x if x == tr!("types.string") => Type::String,
+                x if x == tr!("types.function") => Type::Function,
                 "()" => Type::Empty,
                 _ => Type::Object(type_name.to_string()), // If erroneous, fails at Runtime
             }
@@ -66,12 +64,11 @@ pub mod r#type {
 }
 
 pub mod value {
-    use rust_i18n::t;
 
     use super::r#type::Type;
     use crate::{
         parser::Node,
-        runtime::{NativeFn, VTable, MAX_PRINT_LEN},
+        runtime::{MAX_PRINT_LEN, NativeFn, VTable},
     };
     use std::{collections::HashMap, fmt::Debug};
 
@@ -163,27 +160,27 @@ pub mod value {
             match self {
                 Value::Number(value) => value.to_string(),
                 Value::Bool(value) => match value {
-                    true => t!("literals.true"),
-                    false => t!("literals.false"),
+                    true => tr!("literals.true"),
+                    false => tr!("literals.false"),
                 },
                 Value::String(value) => value.to_string(),
                 Value::Object { name, body } => {
-                    format!("{} ({name}): {:?}", t!("types.object"), body)
+                    format!("{} ({name}): {:?}", tr!("types.object"), body)
                 }
                 Value::Array(t, value) => {
-                    format!("{} ([]{}): {:?}", t!("types.array"), t.string(), value)
+                    format!("{} ([]{}): {:?}", tr!("types.array"), t.string(), value)
                 }
                 Value::Function(func) => func.string(),
                 Value::NativeFunction(func) => {
-                    format!("{} ({})", t!("types.native_function"), func.0)
+                    format!("{} ({})", tr!("types.native_function"), func.0)
                 }
                 Value::FunctionCallThunk { func, .. } => {
-                    format!("Thunk {} ({})", t!("misc.of"), func.string())
+                    format!("Thunk {} ({})", tr!("misc.of"), func.string())
                 }
                 Value::Empty => "".to_string(),
                 Value::Assignment(val) => val.string(),
-                Value::ContinueCalled => t!("literals.continue"),
-                Value::BreakCalled => t!("literals.break"),
+                Value::ContinueCalled => tr!("literals.continue"),
+                Value::BreakCalled => tr!("literals.break"),
             }
         }
     }
@@ -220,7 +217,7 @@ impl Node {
                         let val = node.eval(ctx, stack, false)?;
                         if val.value_type() != value_type {
                             return Err(Err {
-                                message: t!(
+                                message: tr!(
                                     "errors.eval_e1",
                                     a = value_type.string(),
                                     b = val.value_type().string(),
@@ -253,7 +250,7 @@ impl Node {
                     return Ok(val.clone());
                 }
                 Err(Err {
-                    message: t!("errors.eval_e2", a = value, b = position.string()),
+                    message: tr!("errors.eval_e2", a = value, b = position.string()),
                     reason: ErrorReason::System,
                 })
             }
@@ -273,7 +270,7 @@ impl Node {
                             Ok(Value::Bool(*value))
                         }
                         _ => Err(Err {
-                            message: t!("errors.eval_e3", a = op.string(), b = position.string()),
+                            message: tr!("errors.eval_e3", a = op.string(), b = position.string()),
                             reason: ErrorReason::Runtime,
                         }),
                     }
@@ -290,13 +287,13 @@ impl Node {
                             if let Some(_val) = stack.get(value) {
                                 return mut_operand(operand);
                             }
-                            return Err(Err {
-                                message: t!("errors.eval_e2", a = value, b = position.string()),
+                            Err(Err {
+                                message: tr!("errors.eval_e2", a = value, b = position.string()),
                                 reason: ErrorReason::System,
-                            });
+                            })
                         }
                         _ => Err(Err {
-                            message: t!(
+                            message: tr!(
                                 "errors.eval_e3",
                                 a = operand.string(),
                                 b = position.string()
@@ -306,7 +303,7 @@ impl Node {
                     },
 
                     _ => Err(Err {
-                        message: t!(
+                        message: tr!(
                             "errors.eval_e4",
                             a = operator.string(),
                             b = position.string()
@@ -326,7 +323,7 @@ impl Node {
                         }
                     }
                     _ => Err(Err {
-                        message: t!(
+                        message: tr!(
                             "errors.eval_e5",
                             a = operand.string(),
                             b = operand.position().string()
@@ -363,12 +360,12 @@ impl Node {
                         ))
                     }
                     (None, None) => Err(Err {
-                        message: t!("errors.eval_e6"),
+                        message: tr!("errors.eval_e6"),
                         reason: ErrorReason::Assert,
                     }),
                 },
                 _ => Err(Err {
-                    message: t!(
+                    message: tr!(
                         "errors.eval_e5",
                         a = operand.string(),
                         b = operand.position().string()
@@ -405,7 +402,7 @@ impl Node {
                         Ok(Value::Empty)
                     }
                     _ => Err(Err {
-                        message: t!(
+                        message: tr!(
                             "errors.eval_e7",
                             a = sign.0.string(),
                             b = sign.0.position().string()
@@ -421,7 +418,7 @@ impl Node {
             Node::Continueliteral { .. } => match ctx {
                 CallerCtx::InLoop => Ok(Value::ContinueCalled),
                 _ => Err(Err {
-                    message: t!(
+                    message: tr!(
                         "errors.eval_e8",
                         a = self.string(),
                         b = self.position().string()
@@ -433,7 +430,7 @@ impl Node {
             Node::BreakLiteral { .. } => match ctx {
                 CallerCtx::InLoop => Ok(Value::BreakCalled),
                 _ => Err(Err {
-                    message: t!(
+                    message: tr!(
                         "errors.eval_e8",
                         a = self.string(),
                         b = self.position().string()
@@ -485,7 +482,7 @@ fn eval_if_expr_node(
             Value::Bool(val) => ret(val),
             Value::String(str) => ret(str.is_empty()),
             _ => Err(Err {
-                message: t!(
+                message: tr!(
                     "errors.eval_if_expr_node_e1",
                     a = condition.string(),
                     b = node.position().string()
@@ -517,14 +514,11 @@ fn eval_for_expr_node(
         let mut iterable = iterable.as_ref().clone();
         let val = iterable.eval(ctx, stack, allow_thunk)?;
 
-        let var: String;
-        match variable.as_ref() {
-            Node::Identifier { value, .. } => {
-                var = value.clone();
-            }
+        let var: String = match variable.as_ref() {
+            Node::Identifier { value, .. } => value.clone(),
             _ => {
                 return Err(Err {
-                    message: t!(
+                    message: tr!(
                         "errors.eval_e7",
                         a = variable.string(),
                         b = position.string()
@@ -532,12 +526,12 @@ fn eval_for_expr_node(
                     reason: ErrorReason::Runtime,
                 });
             }
-        }
+        };
 
         match val {
             Value::String(val) => {
                 // we only loop if there's a body
-                if let Some(body) = body.as_ref().clone() {
+                if let Some(body) = body.as_ref() {
                     let mut stack = stack.clone();
                     'outer: for c in val.chars() {
                         stack.set(var.clone(), Value::Number(c as u8 as f64));
@@ -563,7 +557,7 @@ fn eval_for_expr_node(
 
             Value::Array(_, items) => {
                 // we only loop if there's a body
-                if let Some(body) = body.as_ref().clone() {
+                if let Some(body) = body.as_ref() {
                     let mut stack = stack.clone();
                     'outer: for item in items {
                         stack.set(var.clone(), item);
@@ -588,13 +582,13 @@ fn eval_for_expr_node(
             }
             _ => {
                 return Err(Err {
-                    message: t!(
+                    message: tr!(
                         "errors.eval_for_expr_node_e1",
                         a = iterable.string(),
                         b = position.string()
                     ),
                     reason: ErrorReason::Runtime,
-                })
+                });
             }
         }
     }
@@ -639,7 +633,7 @@ fn eval_binary_expr_node(
                         let right_value = r.eval(ctx, stack, false)?;
 
                         // try make an update first, if fails push value to stack
-                        if let Err(_) = stack.up(value.clone(), &right_value) {
+                        if stack.up(value.clone(), &right_value).is_err() {
                             stack.set(value.clone(), right_value.clone());
                         }
 
@@ -680,7 +674,7 @@ fn eval_binary_expr_node(
                             }
                             _ => {
                                 return Err(Err {
-                                    message: t!(
+                                    message: tr!(
                                         "errors.eval_e5",
                                         a = operand.string(),
                                         b = operand.position().string()
@@ -708,9 +702,9 @@ fn eval_binary_expr_node(
                                 stack: &mut StackFrame,
                                 object: Value,
                                 object_field: String,
-                                l_left_operand: &Box<Node>,
+                                l_left_operand: &Node,
                                 l_position: &Position,
-                                right_operand: &Box<Node>,
+                                right_operand: &Node,
                             ) -> Result<Value, Err> {
                                 // mutate field value
                                 match &mut object.clone() {
@@ -718,7 +712,6 @@ fn eval_binary_expr_node(
                                         match body.contains_key(&object_field) {
                                             true => {
                                                 let right_value = right_operand
-                                                    .as_ref()
                                                     .clone()
                                                     .eval(ctx, stack, false)?;
                                                 body.insert(
@@ -732,19 +725,17 @@ fn eval_binary_expr_node(
                                                 };
 
                                                 stack.up(l_left_operand.string(), &obj)?;
-                                                return Ok(obj);
+                                                Ok(obj)
                                             }
-                                            false => {
-                                                return Err(Err {
-                                                    message: t!(
-                                                        "errors.eval_binary_expr_node_e1",
-                                                        a = name,
-                                                        b = object.string(),
-                                                        c = l_position.string()
-                                                    ),
-                                                    reason: ErrorReason::Runtime,
-                                                });
-                                            }
+                                            false => Err(Err {
+                                                message: tr!(
+                                                    "errors.eval_binary_expr_node_e1",
+                                                    a = name,
+                                                    b = object.string(),
+                                                    c = l_position.string()
+                                                ),
+                                                reason: ErrorReason::Runtime,
+                                            }),
                                         }
                                     }
 
@@ -758,15 +749,13 @@ fn eval_binary_expr_node(
                                         right_operand,
                                     ),
 
-                                    _ => {
-                                        return Err(Err {
-                                            message: t!(
-                                                "errors.eval_binary_expr_node_e2",
-                                                a = object.string()
-                                            ),
-                                            reason: ErrorReason::System,
-                                        });
-                                    }
+                                    _ => Err(Err {
+                                        message: tr!(
+                                            "errors.eval_binary_expr_node_e2",
+                                            a = object.string()
+                                        ),
+                                        reason: ErrorReason::System,
+                                    }),
                                 }
                             }
 
@@ -781,7 +770,7 @@ fn eval_binary_expr_node(
                             );
                         } else {
                             return Err(Err {
-                                message: t!(
+                                message: tr!(
                                     "errors.eval_binary_expr_node_e3",
                                     a = l_left_operand.string(),
                                     b = left_operand.position().string()
@@ -794,7 +783,7 @@ fn eval_binary_expr_node(
                     _ => {
                         let mut left_operand = left_operand.as_ref().clone();
                         return Err(Err {
-                            message: t!(
+                            message: tr!(
                                 "errors.eval_binary_expr_node_e3",
                                 a = left_operand.eval(&UD, stack, false)?.string(),
                                 b = left_operand.position().string()
@@ -813,38 +802,34 @@ fn eval_binary_expr_node(
                 fn get_field(
                     object: Value,
                     object_field: String,
-                    left_operand: &Box<Node>,
+                    left_operand: &Node,
                 ) -> Result<Value, Err> {
                     match &object {
                         Value::Object { name, body } => match body.contains_key(&object_field) {
                             true => {
                                 let (_, val) =
                                     body.get(&object_field).expect("check done, value exists");
-                                return Ok(val.clone());
+                                Ok(val.clone())
                             }
-                            false => {
-                                return Err(Err {
-                                    message: t!(
-                                        "errors.eval_binary_expr_node_e1",
-                                        a = name,
-                                        b = object.string(),
-                                        c = left_operand.position().string()
-                                    ),
-                                    reason: ErrorReason::Runtime,
-                                });
-                            }
+                            false => Err(Err {
+                                message: tr!(
+                                    "errors.eval_binary_expr_node_e1",
+                                    a = name,
+                                    b = object.string(),
+                                    c = left_operand.position().string()
+                                ),
+                                reason: ErrorReason::Runtime,
+                            }),
                         },
 
                         Value::Assignment(val) => {
                             get_field(val.as_ref().clone(), object_field, left_operand)
                         }
 
-                        _ => {
-                            return Err(Err {
-                                message: t!("errors.eval_binary_expr_node_e2", a = object.string()),
-                                reason: ErrorReason::System,
-                            });
-                        }
+                        _ => Err(Err {
+                            message: tr!("errors.eval_binary_expr_node_e2", a = object.string()),
+                            reason: ErrorReason::System,
+                        }),
                     }
                 }
 
@@ -873,17 +858,17 @@ fn eval_binary_expr_node(
                     }
 
                     Value::Array(t_i, mut arr_i) => {
-                        if let Value::Array(t_j, arr_j) = right_value {
-                            if t_i == t_j {
-                                arr_i.extend(arr_j);
-                                return Ok(Value::Array(t_i, arr_i));
-                            }
+                        if let Value::Array(t_j, arr_j) = right_value
+                            && t_i == t_j
+                        {
+                            arr_i.extend(arr_j);
+                            return Ok(Value::Array(t_i, arr_i));
                         }
                     }
 
                     _ => {
                         return Err(Err {
-                            message: t!(
+                            message: tr!(
                                 "errors.eval_binary_expr_node_e4",
                                 a = left_value.string(),
                                 b = right_value.string(),
@@ -906,7 +891,7 @@ fn eval_binary_expr_node(
 
                     _ => {
                         return Err(Err {
-                            message: t!(
+                            message: tr!(
                                 "errors.eval_binary_expr_node_e5",
                                 a = left_value.string(),
                                 b = right_value.string(),
@@ -935,7 +920,7 @@ fn eval_binary_expr_node(
 
                     _ => {
                         return Err(Err {
-                            message: t!(
+                            message: tr!(
                                 "errors.eval_binary_expr_node_e6",
                                 a = left_value.string(),
                                 b = right_value.string(),
@@ -954,7 +939,7 @@ fn eval_binary_expr_node(
                         if let Value::Number(right_num) = right_value {
                             if right_num == 0f64 {
                                 return Err(Err {
-                                    message: t!(
+                                    message: tr!(
                                         "errors.eval_binary_expr_node_e7",
                                         a = right_operand.string()
                                     ),
@@ -967,7 +952,7 @@ fn eval_binary_expr_node(
 
                     _ => {
                         return Err(Err {
-                            message: t!(
+                            message: tr!(
                                 "errors.eval_binary_expr_node_e8",
                                 a = left_value.string(),
                                 b = right_value.string(),
@@ -986,7 +971,7 @@ fn eval_binary_expr_node(
                         if let Value::Number(right_num) = right_value {
                             if right_num == 0f64 {
                                 return Err(Err {
-                                    message: t!(
+                                    message: tr!(
                                         "errors.eval_binary_expr_node_e9",
                                         a = right_operand.position().string()
                                     ),
@@ -999,7 +984,7 @@ fn eval_binary_expr_node(
 
                     _ => {
                         return Err(Err {
-                            message: t!(
+                            message: tr!(
                                 "errors.eval_binary_expr_node_e10",
                                 a = right_value.string(),
                                 b = left_operand.position().string()
@@ -1015,18 +1000,15 @@ fn eval_binary_expr_node(
                 match left_value {
                     // the LogicalAndOp will perform a bitwise and; `&`.
                     Value::Number(left_num) => {
-                        if is_intable(&left_num) {
-                            if let Value::Number(right_num) = right_value {
-                                if is_intable(&right_num) {
-                                    return Ok(Value::Number(
-                                        (left_num as i64 & right_num as i64) as f64,
-                                    ));
-                                }
-                            }
+                        if is_intable(&left_num)
+                            && let Value::Number(right_num) = right_value
+                            && is_intable(&right_num)
+                        {
+                            return Ok(Value::Number((left_num as i64 & right_num as i64) as f64));
                         }
 
                         return Err(Err {
-                            message: t!(
+                            message: tr!(
                                 "errors.eval_binary_expr_node_e11",
                                 a = left_value.string(),
                                 b = right_value.string(),
@@ -1044,7 +1026,7 @@ fn eval_binary_expr_node(
 
                     _ => {
                         return Err(Err {
-                            message: t!(
+                            message: tr!(
                                 "errors.eval_binary_expr_node_e12",
                                 a = left_value.string(),
                                 b = right_value.string(),
@@ -1061,18 +1043,15 @@ fn eval_binary_expr_node(
                 match left_value {
                     // the LogicalOrOp will perform a bitwise or; `|`.
                     Value::Number(left_num) => {
-                        if is_intable(&left_num) {
-                            if let Value::Number(right_num) = right_value {
-                                if is_intable(&right_num) {
-                                    return Ok(Value::Number(
-                                        (left_num as i64 | right_num as i64) as f64,
-                                    ));
-                                }
-                            }
+                        if is_intable(&left_num)
+                            && let Value::Number(right_num) = right_value
+                            && is_intable(&right_num)
+                        {
+                            return Ok(Value::Number((left_num as i64 | right_num as i64) as f64));
                         }
 
                         return Err(Err {
-                            message: t!(
+                            message: tr!(
                                 "errors.eval_binary_expr_node_e13",
                                 a = left_value.string(),
                                 b = right_value.string(),
@@ -1090,7 +1069,7 @@ fn eval_binary_expr_node(
 
                     _ => {
                         return Err(Err {
-                            message: t!(
+                            message: tr!(
                                 "errors.eval_binary_expr_node_e14",
                                 a = left_value.string(),
                                 b = right_value.string(),
@@ -1119,7 +1098,7 @@ fn eval_binary_expr_node(
 
                     _ => {
                         return Err(Err {
-                            message: t!(
+                            message: tr!(
                                 "errors.eval_binary_expr_node_e15",
                                 a = left_value.string(),
                                 b = right_value.string(),
@@ -1148,7 +1127,7 @@ fn eval_binary_expr_node(
 
                     _ => {
                         return Err(Err {
-                            message: t!(
+                            message: tr!(
                                 "errors.eval_binary_expr_node_e15",
                                 a = left_value.string(),
                                 b = right_value.string(),
@@ -1168,13 +1147,13 @@ fn eval_binary_expr_node(
             _ => {
                 return Err(Err {
                     reason: ErrorReason::Assert,
-                    message: t!("errors.eval_binary_expr_node_e16", a = operator.string()),
-                })
+                    message: tr!("errors.eval_binary_expr_node_e16", a = operator.string()),
+                });
             }
         }
 
         return Err(Err {
-            message: t!(
+            message: tr!(
                 "errors.eval_binary_expr_node_e17",
                 a = operator.string(),
                 b = left_operand.string(),
@@ -1184,14 +1163,14 @@ fn eval_binary_expr_node(
             reason: ErrorReason::Runtime,
         });
     }
-    return Err(Err {
-        message: t!(
+    Err(Err {
+        message: tr!(
             "errors.eval_binary_expr_node_e18",
             a = node.string(),
             b = node.position().string()
         ),
         reason: ErrorReason::Assert,
-    });
+    })
 }
 
 // Calls into a Speak callback function synchronously.
@@ -1213,7 +1192,7 @@ fn eval_speak_function(
                             let want_arg_type = args[i].value_type().string();
                             if want_arg_type != arg_type.string() && want_arg_type != "[]()" {
                                 return Err(Err {
-                                    message: t!(
+                                    message: tr!(
                                         "errors.eval_speak_function_e1",
                                         a = arg_type.string(),
                                         b = want_arg_type,
@@ -1228,7 +1207,7 @@ fn eval_speak_function(
                                 arg_vtable.insert(value.clone(), args[i].clone());
                             } else {
                                 return Err(Err {
-                                    message: t!(
+                                    message: tr!(
                                         "errors.eval_speak_function_e2",
                                         a = arg_ident.string()
                                     ),
@@ -1252,7 +1231,7 @@ fn eval_speak_function(
                     match sign.2.as_ref() {
                         Node::Identifier { .. } => Ok(res),
                         _ => Err(Err {
-                            message: t!("errors.eval_speak_function_e3", a = sign.2.string()),
+                            message: tr!("errors.eval_speak_function_e3", a = sign.2.string()),
                             reason: ErrorReason::Assert,
                         }),
                     }
@@ -1269,7 +1248,7 @@ fn eval_speak_function(
         Value::NativeFunction(func) => func.1(stack, args),
 
         _ => Err(Err {
-            message: t!(
+            message: tr!(
                 "errors.eval_speak_function_e4",
                 a = fn_value.string(),
                 b = fn_value.value_type().string()
@@ -1303,10 +1282,10 @@ fn unwrap_thunk(ctx: &CallerCtx, stack: &mut StackFrame, thunk: &mut Value) -> R
 
                                 _ => {
                                     // if there's a next evaluation, assignment does not count
-                                    if let Value::Assignment(_) = val {
-                                        if i + 1 < body.len() {
-                                            continue;
-                                        }
+                                    if let Value::Assignment(_) = val
+                                        && i + 1 < body.len()
+                                    {
+                                        continue;
                                     }
 
                                     // if the return type is that of the signature, return
@@ -1338,13 +1317,13 @@ fn unwrap_thunk(ctx: &CallerCtx, stack: &mut StackFrame, thunk: &mut Value) -> R
                             }
                         }
                         return Err(Err {
-                            message: t!("errors.unwrap_thunk_e1", a = sign.2.string()),
+                            message: tr!("errors.unwrap_thunk_e1", a = sign.2.string()),
                             reason: ErrorReason::Runtime,
                         });
                     }
                     _ => {
                         return Err(Err {
-                            message: t!("errors.unwrap_thunk_e2", a = defn.string()),
+                            message: tr!("errors.unwrap_thunk_e2", a = defn.string()),
                             reason: ErrorReason::Assert,
                         });
                     }
@@ -1352,7 +1331,7 @@ fn unwrap_thunk(ctx: &CallerCtx, stack: &mut StackFrame, thunk: &mut Value) -> R
             }
             _ => {
                 return Err(Err {
-                    message: t!("errors.unwrap_thunk_e3", a = thunk.string()),
+                    message: tr!("errors.unwrap_thunk_e3", a = thunk.string()),
                     reason: ErrorReason::Assert,
                 });
             }
@@ -1371,7 +1350,7 @@ fn to_usize(num: &f64, pos: &Position) -> Result<usize, Err> {
     match is_intable(num) {
         true => Ok(*num as usize),
         false => Err(Err {
-            message: t!("errors.to_usize_e", a = num, b = pos.string()),
+            message: tr!("errors.to_usize_e", a = num, b = pos.string()),
             reason: ErrorReason::Runtime,
         }),
     }
@@ -1382,7 +1361,7 @@ fn to_number(node: &mut Node, stack: &mut StackFrame) -> Result<f64, Err> {
     match node.eval(&UD, stack, false)? {
         Value::Number(idx) => Ok(idx),
         _ => Err(Err {
-            message: t!(
+            message: tr!(
                 "errors.to_number_e",
                 a = node.string(),
                 b = node.position().string()
@@ -1395,10 +1374,10 @@ fn to_number(node: &mut Node, stack: &mut StackFrame) -> Result<f64, Err> {
 #[cfg(test)]
 mod test {
     use crate::{
-        eval::{value::Value, UD},
+        eval::{UD, value::Value},
         lexer::Position,
         parser::Node,
-        runtime::{load_builtins, Context},
+        runtime::{Context, load_builtins},
     };
 
     #[test]
