@@ -1,0 +1,35 @@
+[package]
+name = "async-runtime-spike"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+# Keep out of the interpreter workspace.
+[workspace]
+
+[features]
+tokio-rt = ["dep:tokio"]
+mio-rt = ["dep:mio"]
+browser = ["dep:wasm-bindgen"]
+
+[dependencies]
+tokio = { version = "1", default-features = false, features = ["rt", "time", "sync"], optional = true }
+mio = { version = "1", features = ["os-poll", "os-ext"], optional = true }
+wasm-bindgen = { version = "0.2", optional = true }
+
+# tokio's `net` pulls in mio, which does not build on wasm32.
+[target.'cfg(unix)'.dependencies]
+tokio = { version = "1", default-features = false, features = ["net"], optional = true }
+
+[[bin]]
+name = "tokio_rt"
+required-features = ["tokio-rt"]
+
+[[bin]]
+name = "mio_rt"
+required-features = ["mio-rt"]
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true
