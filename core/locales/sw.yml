@@ -94,4 +94,9 @@ errors:
   load_builtins_e3: "%{a} inaweza tu kuitwa kwa safu na aina za mlolongo"
   load_builtins_e4: hoja za mod lazima ziwe ya milolongo halisi
   load_builtins_e5: Stackframe uliopewa ni Sifuri
-  
+repl:
+  prompt: "> "
+  continuation: ".. "
+  welcome: Karibu kwenye Speak!
+  hint: "Andika %{a} au bonyeza Ctrl+D ili kutoka."
+  exit: toka
