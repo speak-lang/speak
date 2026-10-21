@@ -12,13 +12,13 @@ Speak is an open-source learning tool, built in the open, that lets people learn
 
 ## How to use this backlog
 
-This backlog takes Speak from a teaching interpreter to a full learning language that runs offline in classrooms, with Node-style async networking, in 5 milestones and 79 tickets. Networking, files and processes arrive as standard-library modules written in Rust behind a native API, so the core language stays small.
+This backlog takes Speak from a teaching interpreter to a full learning language that runs offline in classrooms, with Node-style async networking, in 5 milestones and 91 tickets. Networking, files and processes arrive as standard-library modules written in Rust behind a native API, so the core language stays small.
 
 - IDs: `SPK-<epic><nn>`, e.g. SPK-501 is the first networking ticket. Use the ID as the prefix of PR titles and branch names.
 - Size: S = up to 3 days, M = 1 to 2 weeks, L = 3 to 6 weeks, XL = split before starting.
 - Priority: P0 = needed for the Kenya classroom pilot (M3), P1 = needed for 1.0, P2 = after 1.0.
 - Needs: tickets that must land first. The critical path is in the milestones section.
-- Labels: one per epic (core, native-api, async, stdlib, net, pkg, tooling, i18n, security, classroom).
+- Labels: one per epic (core, native-api, async, stdlib, net, pkg, tooling, i18n, security, classroom, blocks, projects).
 
 One rule applies to every ticket: no hard-coded English names. Every keyword, builtin, stdlib function name, type name and error message goes through the locale files, so a Swahili program can open a socket as easily as an English one.
 A second rule protects Speak's edge with beginners: advanced features arrive as modules, so a beginner's FizzBuzz looks the same after this work as it does today.
@@ -58,9 +58,9 @@ Closures, shared references and modules come first, because every later epic bui
 | SPK-108 | New core types: integer, bytes, map | Integers coexist with floats. A bytes type supports slicing and encoding. A map type takes arbitrary string keys without a declared object name. | L | P0 | 104 |
 | SPK-109 | Unicode correctness | len counts characters, for over a string yields one-character strings, and slicing is character-based. Tests cover Amharic and Yoruba text. | S | P0 | 102 |
 | SPK-110 | Enforce declared return types | A function returning the wrong type raises a localized runtime error, as the README promises. | S | P1 | 102 |
-| SPK-111 | Ranges and an unbounded loop | A range builtin and a localized loop-forever form exist, for servers and counters. | S | P1 | 103 |
 | SPK-112 | Module system | The mod builtin no longer panics. Imports resolve file-relative paths, cache modules, expose explicit exports and report import cycles. | M | P0 | 103 |
 | SPK-113 | Bytecode compiler and VM | Only if SPK-105 shows the tree-walker misses targets after SPK-103 and SPK-104. AST compiles to bytecode with at least 3x speedup on fib(30). | XL | P1 | 105 |
+| SPK-114 | Simpler, Go-style syntax | `if`/`else` take indented blocks, replacing `cond ? a ! b`. `for` is the only loop: `for x in 1..15`, `for cond` and a bare `for` that loops forever, with `1..15` ranges. Logic uses the words `and`, `or` and `not`. Operators follow school-maths precedence. Every block runs all its statements, and functions return only through an explicit `return`. Every new keyword has an entry in every locale, and the spec, samples and tests use the new forms. Absorbs the old SPK-111. | M | P0 | 101 |
 
 ## Epic 2: Native extension API
 
@@ -191,24 +191,50 @@ Everything a school needs to use Speak with no internet connection, on hardware 
 | SPK-1007 | First Kenyan native-tongue locale | A locale file and the M3 lessons in one Kenyan native tongue chosen with the partner school, such as Dholuo or Gĩkũyũ, written and reviewed by native-speaking teachers and passing the SPK-804 completeness check. | M | P0 | 804, 1003 |
 | SPK-1006 | Offline package bundles | speak add <path> installs a package from a USB stick or local folder, so teachers can share packages with no internet. | S | P1 | 602 |
 
+## Epic 11: Blocks and stage
+
+Speak covers ages 8 to 18 in one tool, so younger learners start with blocks and sprites instead of Scratch and move to text without switching languages. Blocks are a view of Speak's syntax tree, and their labels come from the locale files, so a new locale translates blocks, code and errors in one pass. The block editor runs in the browser through the wasm32 build, so the Pi, phone and web builds share it.
+
+| ID | Ticket | Done when | Size | Pri | Needs |
+| --- | --- | --- | --- | --- | --- |
+| SPK-1101 | std/stage | Sprites with costumes, move, turn, say and a fixed frame tick, with localized names. The script runs once to register handlers, then the host calls tick and dispatch each frame. The stage emits a draw-command list that a canvas renders in the browser and SDL2 (KMSDRM) renders on the Pi, including Raspberry Pi OS Lite. | L | P1 | 202, 302, 901, 905 |
+| SPK-1102 | Stage events | Localized handlers for sprite clicked, key pressed, every tick and broadcast messages, run on the event loop. | M | P1 | 303, 1101 |
+| SPK-1103 | Blocks from the syntax tree | Each syntax-tree node kind maps to one block type, generated rather than hand-written. Block labels come from the locale files, and the SPK-804 check covers them. Blocks become text through the SPK-703 printer, and round-trip tests confirm the printed text parses back to the same tree, since indentation decides where blocks end. | M | P1 | 114, 703, 801, 804 |
+| SPK-1104 | Block editor | A Blockly-based editor in the playground and the classroom image shows blocks and the generated Speak text side by side, and runs programs through the wasm32 build with no network. | L | P1 | 901, 1103 |
+| SPK-1105 | Text to blocks | Speak text opens as blocks, keeping comments. The lexer keeps comments as tokens, tokens and nodes carry end positions, and the parser recovers per statement, so code with no block form shows as a text block instead of failing. | L | P2 | 703, 1104 |
+| SPK-1106 | Block lessons | A lesson series for ages 8 to 12 built on blocks and the stage, ending with the move to the text view, in every pilot locale. | M | P1 | 1003, 1102, 1104 |
+| SPK-1107 | Stage sound | Sprites play bundled sounds and notes, with every asset shipped offline. | S | P2 | 1101 |
+
+## Epic 12: Build real systems
+
+The advanced track for ages 15 to 18 follows the CodeCrafters model: learners build a real system from scratch in stages, and a tester checks each stage against their running program. Every tester runs on the Pi with no network, speaks the learner's locale and gives a hint, not the answer. Projects build on raw TCP and files rather than the ready-made std/http, so learners write the protocol themselves.
+
+| ID | Ticket | Done when | Size | Pri | Needs |
+| --- | --- | --- | --- | --- | --- |
+| SPK-1201 | Project tester harness | speak learn runs a staged project. Each stage's tester drives the learner's program through stdin and stdout, files or localhost TCP, reports pass or fail with a localized hint, and unlocks the next stage. Projects are plain folders a teacher can read and edit. | M | P1 | 701, 1003 |
+| SPK-1202 | Build your own key-value store | Stages go from commands on stdin, to saving to a file, to serving a Redis-like text protocol over TCP to several clients. | M | P1 | 401, 501, 1201 |
+| SPK-1203 | Build your own HTTP server | On raw TCP, stages go from a fixed 200 response, to parsing the path and headers, to serving files, to handling several clients at once. | M | P1 | 401, 501, 1201 |
+| SPK-1204 | Build your own chat | Stages go from echo, to broadcast, to nicknames, to rooms, on the classroom network between Pis or on the SPK-903 simulated network. | M | P1 | 501, 903, 1201 |
+| SPK-1205 | Build your own interpreter | Stages go from a calculator, to variables, to if and for, ending in a tiny Speak written in Speak. | M | P2 | 1201 |
+
 ## Milestones and sequencing
 
 | Milestone | Tickets | Scope | Gate |
 | --- | --- | --- | --- |
-| M1 Foundations · v0.2 | SPK-101 to 106, 108, 109, 112, 801, 804 (11) | Spec and conformance tests, lexical closures, shared heap, catchable errors, integers/bytes/maps, Unicode fixes, working imports, per-file locale | Every sample passes in English and Swahili; closure and soak tests are green |
+| M1 Foundations · v0.2 | SPK-101 to 106, 108, 109, 112, 114, 801, 804 (12) | Spec and conformance tests, simpler syntax, lexical closures, shared heap, catchable errors, integers/bytes/maps, Unicode fixes, working imports, per-file locale | Every sample passes in English and Swahili; closure and soak tests are green |
 | M2 Runtime · v0.3 | SPK-201 to 205, 301 to 306, 401, 402, 404 to 406, 409, 701, 802, 805, 901, 904 (22) | Native extension API, event loop, async/await, timers, streams, fs/os/time/json/text modules, test runner, permissions, WASM build kept green | An async file read and a timer work in both locales, and the playground still builds |
 | M3 Classroom pilot · v0.4 | SPK-107, 501 to 506, 510, 702, 903, 1001 to 1005, 1007 (16) | Pi build, built-in std, offline lessons, a first Kenyan native-tongue locale, beginner editor, SD card image, clear errors, better REPL; TCP, DNS, TLS, URL parsing, HTTP, the simulated network, and chat and JSON API examples in English and Swahili | In the Kenya pilot, a class writes and runs programs in their native tongue and in Swahili on Pis with no internet, including a chat between two Pis on the classroom network |
-| M4 Ecosystem · v0.5 | SPK-110, 111, 403, 407, 408, 507 to 509, 601 to 604, 703 to 705, 803, 806, 808, 902, 905, 906, 1006 (22) | Packages from git and USB, router in Speak, UDP, WebSockets, processes, crypto, formatter, language server, cross-language imports, translate | A package installs from git and imports cleanly from a file in another locale |
+| M4 Ecosystem · v0.5 | SPK-110, 403, 407, 408, 507 to 509, 601 to 604, 703 to 705, 803, 806, 808, 902, 905, 906, 1006, 1101 to 1104, 1106, 1201 to 1204 (30) | Packages from git and USB, router in Speak, UDP, WebSockets, processes, crypto, formatter, language server, cross-language imports, translate, stage, blocks and block lessons, build-your-own projects | A package installs from git and imports cleanly from a file in another locale, and a class builds a sprite game in blocks in Swahili, then reads it as Speak text |
 | M5 Speak 1.0 | SPK-807, 113 (2) | Language-mixing mode, then a spec freeze; bytecode VM only if benchmarks demand it | — |
-| After 1.0 (P2) | SPK-206, 307, 605, 706, 707, 907 | Hosted registry, debugger, docs generator, workers, third-party native code, package signing | — |
+| After 1.0 (P2) | SPK-206, 307, 605, 706, 707, 907, 1105, 1107, 1205 | Hosted registry, debugger, docs generator, workers, third-party native code, package signing, text to blocks, stage sound, build-your-own interpreter | — |
 
-The 49 P0 tickets fill M1 to M3, ending in the Kenya classroom pilot. M4 and M5 carry the 24 P1 tickets to 1.0, and the 6 P2 tickets wait until after it.
+The 50 P0 tickets fill M1 to M3, ending in the Kenya classroom pilot. M4 and M5 carry the 32 P1 tickets to 1.0, and the 9 P2 tickets wait until after it. Blocks land in M4 because the stage needs the native API and event loop from M2, so the M3 pilot starts with text-mode lessons for older learners.
 
 The longest chain runs SPK-103, 302, 303, 305, 501, 506, 510. SPK-104, 201 and 203 must also be done before 501 starts, so closures and the shared heap are the first work to begin. The SD card image (SPK-1005) closes M3 and depends on the editor, lessons and Pi build, which can run alongside the networking chain.
 
 ## Decisions
 
-Six choices shape the tickets above. All are settled. Speak targets learners in the browser and in mobile apps, so the core and the std modules that don't need the OS stay buildable for wasm32. Native-only features (raw sockets, processes, runtime-loaded extensions) may compile out there.
+Seven choices shape the tickets above. All are settled. Speak targets learners in the browser and in mobile apps, so the core and the std modules that don't need the OS stay buildable for wasm32. Native-only features (raw sockets, processes, runtime-loaded extensions) may compile out there.
 
 | Decision | Ticket | Choice | Why |
 | --- | --- | --- | --- |
@@ -218,3 +244,4 @@ Six choices shape the tickets above. All are settled. Speak targets learners in 
 | Interpreter | SPK-113 | Keep the tree-walker; decide after SPK-105 benchmarks | Fix scoping and the heap first, then let measured numbers decide whether a bytecode VM is worth it. |
 | Third-party native code | SPK-206 | Three tiers. 1: packages in Speak source, which run everywhere. 2: Rust modules compiled into the host app through the SPK-202 registry, behind feature flags. 3: plain WASM modules loaded at run time through wasmi, on the CLI, desktop and browser builds, off by default in mobile apps. No dynamic libraries. | Apple's App Store rule 2.5.2 lets learning apps run downloaded code only if the learner can view and edit its source, so mobile apps rely on tiers 1 and 2. wasmi is a pure interpreter that runs inside the wasm32 build and on iOS without a JIT. It does not support WASM components yet, so Speak adopts them once it does. |
 | Language mixing | SPK-807 | Keywords and type names of every declared locale are reserved; using one as a name is a lex-time error naming both meanings. Builtin and std names can be shadowed by user names. | English type words such as `number`, `string`, `object`, `function` and `array` are common variable names, so the error must explain why a name that worked before became reserved when a locale was added. Shadowing std names keeps the number of reserved words small. |
+| Syntax style | SPK-114 | Go-style: one way to do each thing, words over symbols. `if`/`else` blocks, `for` as the only loop with ranges, `and`/`or`/`not`, school-maths precedence, explicit `return`. `is` assigns and `=` compares. | Learners aged 8 to 18 read keywords in their own language, but `?`, `!`, `&` and `\|` mean nothing in any language. Uniform indented blocks map one-to-one onto Scratch-style blocks (Epic 11), so the block editor and the text teach the same shapes. Changing syntax is cheap before the 1.0 spec freeze and costly after. |
