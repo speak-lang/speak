@@ -110,6 +110,9 @@ pub mod value {
         ContinueCalled,
 
         BreakCalled,
+
+        /// `return` unwinding to the enclosing function, carrying the returned value.
+        ReturnCalled(Box<Value>),
     }
 
     #[derive(Debug, Clone)]
@@ -143,6 +146,7 @@ pub mod value {
                 Value::Empty => Type::Empty,
                 Value::Assignment(val) => val.value_type(),
                 Value::ContinueCalled | Value::BreakCalled => Type::Empty,
+                Value::ReturnCalled(val) => val.value_type(),
             }
         }
 
@@ -181,6 +185,7 @@ pub mod value {
                 Value::Assignment(val) => val.string(),
                 Value::ContinueCalled => tr!("literals.continue"),
                 Value::BreakCalled => tr!("literals.break"),
+                Value::ReturnCalled(val) => val.string(),
             }
         }
     }
@@ -460,6 +465,11 @@ impl Node {
                 }),
             },
 
+            Node::ReturnExpr { value, .. } => Ok(Value::ReturnCalled(Box::new(match value {
+                Some(value) => value.eval(ctx, stack, false)?,
+                None => Value::Empty,
+            }))),
+
             Node::BreakLiteral { .. } => match ctx {
                 CallerCtx::InLoop => Ok(Value::BreakCalled),
                 _ => Err(Err {
@@ -475,9 +485,8 @@ impl Node {
     }
 }
 
-/// Evaluates the statements of a block in order. A statement that yields a value other than
-/// empty or an assignment ends the block with that value: the value of the block (`if` is an
-/// expression), an early return from a function, or `break`/`continue` inside a loop.
+/// Evaluates every statement of a block in order. Only `return`, `break` and `continue`
+/// (and errors) leave early. The value of the block is the value of its last statement.
 fn eval_block(
     ctx: &CallerCtx,
     body: &[Node],
@@ -487,7 +496,10 @@ fn eval_block(
     let mut last = Value::Empty;
     for stmt in body {
         last = stmt.clone().eval(ctx, stack, allow_thunk)?;
-        if !matches!(last, Value::Empty | Value::Assignment(..)) {
+        if matches!(
+            last,
+            Value::ReturnCalled(..) | Value::BreakCalled | Value::ContinueCalled
+        ) {
             break;
         }
     }
@@ -554,10 +566,10 @@ fn eval_for_expr_node(
         let run_body = |stack: &mut StackFrame| -> Result<Option<Value>, Err> {
             Ok(
                 match eval_block(&CallerCtx::InLoop, body, stack, allow_thunk)? {
-                    Value::Empty | Value::Assignment(..) | Value::ContinueCalled => None,
                     Value::BreakCalled => Some(Value::Empty),
-                    // else return value
-                    ret => Some(ret),
+                    // a `return` leaves the loop and the function around it
+                    ret @ Value::ReturnCalled(..) => Some(ret),
+                    _ => None,
                 },
             )
         };
@@ -1256,87 +1268,51 @@ fn eval_speak_function(
     }
 }
 
-// Expands out a recursive structure of thunks into a flat for loop control structure
-fn unwrap_thunk(ctx: &CallerCtx, stack: &mut StackFrame, thunk: &mut Value) -> Result<Value, Err> {
-    let mut is_thunk = true;
-    let mut stacks_added = 0;
-    'UNWRAP: while is_thunk {
-        match thunk {
-            Value::FunctionCallThunk { func, vt, .. } => {
-                stack.push_frame(vt.clone());
-                stacks_added += 1;
+// Runs a function's body in a new frame. The result is the value of the `return` that ends
+// the body, or `()` when the body ends without one.
+fn unwrap_thunk(_ctx: &CallerCtx, stack: &mut StackFrame, thunk: &mut Value) -> Result<Value, Err> {
+    match thunk {
+        Value::FunctionCallThunk { func, vt, .. } => {
+            stack.push_frame(vt.clone());
 
-                let defn = &mut func.defn;
-                match defn {
-                    Node::FunctionLiteral { sign, body, .. } => {
-                        let mut val: Value;
-                        for (i, stmt) in body.iter().enumerate() {
-                            val = stmt.clone().eval(ctx, stack, false)?;
-                            match val {
-                                Value::FunctionCallThunk { .. } => {
-                                    is_thunk = true;
-                                    continue 'UNWRAP;
-                                }
+            match &func.defn {
+                Node::FunctionLiteral { sign, body, .. } => {
+                    // break and continue cannot cross a function boundary
+                    let res = match eval_block(&UD, body, stack, false)? {
+                        Value::ReturnCalled(val) => *val,
+                        _ => Value::Empty,
+                    };
 
-                                _ => {
-                                    // if there's a next evaluation, assignment does not count
-                                    if let Value::Assignment(_) = val
-                                        && i + 1 < body.len()
-                                    {
-                                        continue;
-                                    }
-
-                                    // if the return type is that of the signature, return
-                                    if match val.value_type() {
-                                        Type::Object(obj) => obj,
-                                        Type::Array(..) => {
-                                            let v = val.value_type().string();
-                                            if let Value::Array(t, arr) = &val {
-                                                if arr.is_empty() && t == &Type::Empty {
-                                                    sign.2.string()
-                                                } else {
-                                                    v
-                                                }
-                                            } else {
-                                                v
-                                            }
-                                        }
-                                        _ => val.value_type().string(),
-                                    } == sign.2.string()
-                                    {
-                                        // pop stacks that were added, to free memory
-                                        for _ in 1..=stacks_added {
-                                            stack.pop_frame()?;
-                                        }
-
-                                        return Ok(val);
-                                    }
-                                }
-                            }
+                    // a returned value must have the declared result type
+                    if !matches!(res, Value::Empty) {
+                        let got = match &res {
+                            // an empty array matches any array type
+                            Value::Array(Type::Empty, arr) if arr.is_empty() => sign.2.string(),
+                            Value::Object { name, .. } => name.clone(),
+                            _ => res.value_type().string(),
+                        };
+                        if got != sign.2.string() {
+                            return Err(Err {
+                                message: tr!("errors.unwrap_thunk_e1", a = sign.2.string()),
+                                reason: ErrorReason::Runtime,
+                            });
                         }
-                        return Err(Err {
-                            message: tr!("errors.unwrap_thunk_e1", a = sign.2.string()),
-                            reason: ErrorReason::Runtime,
-                        });
                     }
-                    _ => {
-                        return Err(Err {
-                            message: tr!("errors.unwrap_thunk_e2", a = defn.string()),
-                            reason: ErrorReason::Assert,
-                        });
-                    }
+
+                    stack.pop_frame()?;
+                    Ok(res)
                 }
-            }
-            _ => {
-                return Err(Err {
-                    message: tr!("errors.unwrap_thunk_e3", a = thunk.string()),
+                defn => Err(Err {
+                    message: tr!("errors.unwrap_thunk_e2", a = defn.string()),
                     reason: ErrorReason::Assert,
-                });
+                }),
             }
         }
+        _ => Err(Err {
+            message: tr!("errors.unwrap_thunk_e3", a = thunk.string()),
+            reason: ErrorReason::Assert,
+        }),
     }
-
-    unimplemented!("this code is never called")
 }
 
 fn logical_err(is_and: bool, left: &Value, right: &Value, position: &Position) -> String {

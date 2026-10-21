@@ -59,17 +59,17 @@ English Speak, Fibonacci sequence.
 // naive implementation
 fib: n number -> number
     if n = 0
-        0
+        return 0
     if n = 1
-        1
-    (fib n - 1) + (fib n - 2)
+        return 1
+    return (fib n - 1) + (fib n - 2)
 
 // memoized implementation
 memo is [0, 1]
 fibMemo: n number -> number
     if memo[n] = ()
         memo[n] is (fibMemo n - 1) + (fibMemo n - 2)
-    memo[n]
+    return memo[n]
 
 println "Naive solution: {}" (fib 20)
 print "Dynamic solution: {}" (fibMemo 20)
@@ -81,17 +81,17 @@ Swahili Speak, Fibonacci sequence.
 // utekelezaji jinga
 fib: n nambari -> nambari
     kama n = 0
-        0
+        rudisha 0
     kama n = 1
-        1
-    (fib n - 1) + (fib n - 2)
+        rudisha 1
+    rudisha (fib n - 1) + (fib n - 2)
 
 // utekelezaji wa kumbukumbu
 kumbukumbu ni [0,1]
 fibKumbukumbu: n nambari -> nambari
     kama kumbukumbu[n] = ()
         kumbukumbu[n] ni (fibKumbukumbu n -1) + (fibKumbukumbu n - 2)
-    kumbukumbu[n]
+    rudisha kumbukumbu[n]
 
 andika_laini "Matokeo ya utekelezaji jinga: {}" (fib 20)
 andika "Matokeo ya utekelezaji wa kumbukumbu: {}" (fibKumbukumbu 20)
@@ -104,16 +104,15 @@ English Speak, Collatz sequence.
 
 next: n number -> number
     if n % 2 = 0
-        n / 2
-    else
-        3 * n + 1
+        return n / 2
+    return 3 * n + 1
 
 collatz: n number -> []number
     if n < 1
-        []
+        return []
     if n = 1
-        [n]
-    [n] + collatz (next n) // arrays can be appended by AddOp
+        return [n]
+    return [n] + collatz (next n) // arrays can be appended by AddOp
 
 // run a search for longest collatz sequence under max
 max is 1_000
@@ -128,16 +127,15 @@ Swahili Speak, Collatz sequence.
 
 inayofuata: n nambari -> nambari
     kama n % 2 = 0
-        n / 2
-    sivyo
-        3 * n + 1
+        rudisha n / 2
+    rudisha 3 * n + 1
 
 collatz: n nambari -> []nambari
     kama n < 1
-        []
+        rudisha []
     kama n = 1
-        [n]
-    [n] + collatz (inayofuata n) // safu zakusanywa kwa kutumia operesheni ya kuongeza
+        rudisha [n]
+    rudisha [n] + collatz (inayofuata n) // safu zakusanywa kwa kutumia operesheni ya kuongeza
 
 // tafuta mifuatano ya Collatz kwa hifadhi ya upeo
 upeo ni 1_000

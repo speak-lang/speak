@@ -25,11 +25,11 @@ fn if_else_if_else_blocks() {
         run(&format!(
             "grade: n number -> string
     if n > 89
-        \"A\"
+        return \"A\"
     else if n > 79
-        \"B\"
+        return \"B\"
     else
-        \"C\"
+        return \"C\"
 grade {n}"
         ))
     };
@@ -166,22 +166,123 @@ fn school_maths_precedence() {
 }
 
 #[test]
-fn early_return_through_blocks_and_loops() {
+fn blocks_run_every_statement() {
+    // a bare expression in a block must not end the block
+    let src = "log is \">\"
+x is 1
+if x = 1
+    x + 1
+    log is log + \"a\"
+for i in 1..3
+    len \"ab\"
+    log is log + (sprint i)
+log";
+    assert_eq!(run(src), ">a123");
+
+    // same inside a function with no return: every statement runs, result is ()
+    let src = "log is \">\"
+f: n number -> number
+    n + 1
+    log is log + \"x\"
+    n + 2
+f 1
+log";
+    assert_eq!(run(src), ">x");
+    assert_eq!(run("f: n number -> number\n    n + 1\nf 1"), "");
+}
+
+#[test]
+fn return_from_nested_blocks() {
     let src = "first_big: xs []number -> number
     for x in xs
         if x > 10
-            x
-    0
+            return x
+    return 0
 first_big ([3, 12, 40])";
     assert_eq!(run(src), "12");
+
+    // falls through to the final return when nothing matches
+    let src = "first_big: xs []number -> number
+    for x in xs
+        if x > 100
+            return x
+    return 0
+first_big ([3, 12, 40])";
+    assert_eq!(run(src), "0");
+
+    // return from two loops and two ifs deep
+    let src = "find: n number -> number
+    for i in 1..5
+        for j in 1..5
+            if i * j = n
+                if i < j
+                    return i * 10 + j
+    return 0
+find 12";
+    assert_eq!(run(src), "34");
+
+    // statements after a returning branch do not run
+    let src = "log is \">\"
+f: n number -> number
+    if n > 0
+        return 1
+    log is log + \"neg\"
+    return 2
+f 5
+f (~5)
+log";
+    assert_eq!(run(src), ">neg");
 
     let src = "sum_to: n number -> number
     s is 0
     for i in 1..n
         s is s + i
-    s
+    return s
 sum_to 10";
     assert_eq!(run(src), "55");
+
+    // a bare return gives ()
+    assert_eq!(run("f: n number -> number\n    return\nf 1"), "");
+}
+
+#[test]
+fn return_checks_declared_type() {
+    assert!(run_in("en", "f: n number -> string\n    return n\nf 1").is_err());
+    assert_eq!(run("f: n number -> []number\n    return []\nlen (f 1)"), "0");
+}
+
+#[test]
+fn return_outside_function_is_an_error() {
+    assert!(run_in("en", "return 1").is_err());
+    assert!(run_in("en", "for i in 1..2\n    return 1").is_err());
+}
+
+#[test]
+fn break_and_continue_through_nested_if() {
+    let src = "log is \">\"
+for i in 1..6
+    if i > 1
+        if i = 2
+            continue
+        else
+            if i = 5
+                break
+    log is log + (sprint i)
+log";
+    assert_eq!(run(src), ">134");
+
+    let src = "log is \">\"
+for i in 1..6
+    if i % 2 = 0
+        continue
+    if i > 4
+        break
+    log is log + (sprint i)
+log";
+    assert_eq!(run(src), ">13");
+
+    // break and continue are not allowed to cross a function call
+    assert!(run_in("en", "f: n number -> number\n    break\nfor i in 1..2\n    f 1").is_err());
 }
 
 #[test]

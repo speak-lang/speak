@@ -15,6 +15,7 @@ literals:
   in: in
   if: if
   else: else
+  return: return
   and: and
   or: or
   not: not

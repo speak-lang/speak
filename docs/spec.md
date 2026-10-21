@@ -65,6 +65,7 @@ An integer literal has no `.`; a float literal has one. This follows the numbers
 | `literals.for` | `for` | `kwa` | loop |
 | `literals.in` | `in` | `katika` | loop |
 | `literals.break` | `break` | `vunja` | leave a loop |
+| `literals.return` | `return` | `rudisha` | leave a function with a result |
 | `literals.continue` | `continue` | `endelea` | next loop turn |
 | `literals.is` | `is` | `ni` | assignment |
 | `types.number` | `number` | `nambari` | type name |
@@ -79,7 +80,7 @@ An integer literal has no `.`; a float literal has one. This follows the numbers
 | `builtins.len` | `len` | `urefu` | builtin |
 | `builtins.mod` | `mod` | `moduli` | builtin |
 
-The Swahili words for `else`, `and`, `or` and `not` (`sivyo`, `na`, `au`, `si`) are proposals and need review by native speakers; the locale file marks them with a comment. They do not collide with any other keyword or builtin word.
+The Swahili words for `else`, `and`, `or`, `not` and `return` (`sivyo`, `na`, `au`, `si`, `rudisha`) are proposals and need review by native speakers; the locale file marks them with a comment. They do not collide with any other keyword or builtin word.
 
 The `types.native_function` word (`native function`, `kazi asilia`) names builtins when they are printed. It is not written in source.
 
@@ -95,7 +96,7 @@ In a file that declares several locales (SPK-807), the keywords and type names o
 
 ### 3.1 Notation
 
-EBNF: `|` choice, `[ ]` optional, `{ }` zero or more, `( )` grouping, quoted text is literal punctuation. Words in capitals are tokens from [section 2](#2-lexical-structure): `IDENT`, `NUMBER`, `STRING`, and the locale words `IF`, `ELSE`, `FOR`, `IN`, `IS`, `AND`, `OR`, `NOT`, `TRUE`, `FALSE`, `BREAK`, `CONTINUE`. `TYPENAME` is a type word.
+EBNF: `|` choice, `[ ]` optional, `{ }` zero or more, `( )` grouping, quoted text is literal punctuation. Words in capitals are tokens from [section 2](#2-lexical-structure): `IDENT`, `NUMBER`, `STRING`, and the locale words `IF`, `ELSE`, `FOR`, `IN`, `IS`, `AND`, `OR`, `NOT`, `TRUE`, `FALSE`, `BREAK`, `CONTINUE`, `RETURN`. `TYPENAME` is a type word.
 
 ### 3.2 Grammar
 
@@ -116,7 +117,7 @@ application   = primary { argument } ;                    (* arguments on the sa
 argument      = operand-no-call { binary-op operand-no-call } ;
 
 primary       = NUMBER | STRING | TRUE | FALSE | "()" | "_"
-              | BREAK | CONTINUE
+              | BREAK | CONTINUE | RETURN [ expression ]   (* the value is on the same line *)
               | IDENT [ index | slice | object-fields ]
               | "(" expression ")"
               | array | if | for | function ;
@@ -146,6 +147,7 @@ Notes on the grammar:
 - On the left of `is` the only legal forms are an identifier, `_`, an indexed element `a[i]`, or a field `object.field`. Anything else is a runtime error.
 - `if` takes a condition and an indented block. After the block, an optional `else` at the same column as the `if` takes either another `if` (making `else if`) or an indented block. A block may be empty. The old `if cond ? a ! b` form is gone.
 - `for` has three forms, all followed by an indented block: `for x in iterable` runs the block once per element, `for condition` runs it while the condition is `true`, and a bare `for` with nothing after it on its line runs it until `break`. The loop variable of `for x in` must be an identifier.
+- `return` leaves the enclosing function, from any depth of `if` and `for` blocks, with the value after it (or `()` if there is none). It is an error outside a function. `break` and `continue` leave the nearest enclosing `for` and cannot cross a function call.
 - `a..b` is a **range**: the numbers from `a` up to and including `b`, so `1..15` is `1, 2, ..., 15`. Both ends must be whole numbers. If `a` is greater than `b` the range is empty. A range may only appear after `in` in a `for`; it is not a value that can be stored (use an array for that). Inside `[ ]`, `..` still means a slice, whose end is exclusive.
 - `function` is a definition: `name: params -> type`, then the body. The same `IDENT ":"` starts every definition, so a name followed by a colon is always a function.
 - `_` is the empty identifier. `_ is expr` evaluates `expr` and discards the result.
@@ -178,9 +180,10 @@ Evaluation is eager and strict, and runs strictly top to bottom through a file.
 2. **Literals** evaluate to themselves. An array literal evaluates its elements left to right.
 3. **Binary operators** evaluate the left operand, then the right operand, then apply the operator. The exception is `and` and `or`, which skip the right operand when the left one decides the result (`false and x` is `false`, `true or x` is `true`).
 4. **Calls** evaluate the arguments left to right, each completely before the next, then call the function. Arguments are passed by value for numbers, booleans and strings, and by shared reference for arrays and objects ([5.5](#55-references)).
-5. **`if`** evaluates the condition, which must be a `bool`, then evaluates only the chosen block. `if` is an expression: its value is the value of the block, and a block ends early at the first statement that yields a value other than `()` or an assignment, so that value (a `break` or `continue` too) becomes the value of the `if`. A missing `else` yields `()`. This is what lets `if` return early from a function ([7.2](#72-result-of-a-call)). (Today a string is also accepted as a condition, and an empty string counts as true; no ticket yet.)
-6. **`for x in`** evaluates the iterable once, then runs the body once per element, in order. **`for condition`** evaluates the condition before every turn and stops when it is `false`; a condition that is not a `bool` is a runtime error. A bare **`for`** never stops by itself. In all three forms `break` leaves the loop and `continue` goes to the next turn. A `for` yields `()`, unless the body produced a value that should leave the enclosing function ([7.2](#72-result-of-a-call)).
-7. **Assignment** `target is value` evaluates `value` first, then binds or updates `target` (see [section 6](#6-scoping-and-closures)).
+5. **Blocks** (the body of an `if`, `else`, `for` or function) run **every** statement, in order. A statement that is only an expression, like `len name`, is evaluated and its value dropped. Only `return`, `break`, `continue` and errors leave a block early. The value of a block is the value of its last statement.
+6. **`if`** evaluates the condition, which must be a `bool`, then evaluates only the chosen block. `if` is an expression: its value is the value of the block taken, and a missing `else` yields `()`. (Today a string is also accepted as a condition, and an empty string counts as true; no ticket yet.)
+7. **`for x in`** evaluates the iterable once, then runs the body once per element, in order. **`for condition`** evaluates the condition before every turn and stops when it is `false`; a condition that is not a `bool` is a runtime error. A bare **`for`** never stops by itself. In all three forms `break` leaves the loop and `continue` goes to the next turn. A `for` yields `()`. A `return` in the body leaves the loop and the function around it ([7.2](#72-result-of-a-call)).
+8. **Assignment** `target is value` evaluates `value` first, then binds or updates `target` (see [section 6](#6-scoping-and-closures)).
 
 Operand types not listed in the table below are a runtime error.
 
@@ -396,8 +399,8 @@ make_counter: start number -> function
     count is start
     next: step number -> number
         count is count + step
-        count
-    next
+        return count
+    return next
 
 c is make_counter 0
 println "{}" (c 1)
@@ -411,8 +414,8 @@ tengeneza_kaunta: mwanzo nambari -> kazi
     jumla ni mwanzo
     ifuatayo: hatua nambari -> nambari
         jumla ni jumla + hatua
-        jumla
-    ifuatayo
+        rudisha jumla
+    rudisha ifuatayo
 
 k ni tengeneza_kaunta 0
 andika_laini "{}" (k 1)
@@ -426,9 +429,9 @@ The difference between lexical and dynamic scoping shows when a parameter has th
 ```spk
 scale is 10
 times: n number -> number
-    n * scale
+    return n * scale
 run: scale number -> number
-    times 2
+    return times 2
 println "{}" (run 3)
 ```
 
@@ -455,35 +458,35 @@ name: param1, param2 type, param3 type -> result-type
 
 ### 7.2 Result of a call
 
-The body is a sequence of expressions evaluated in order. An expression whose value has the **declared result type** ends the call, and that value is the result. Expressions of any other type, including `()`, do not end it. This is how early exit works in Speak: an `if` with no matching block yields `()` and the body goes on, and one that matches yields a value of the right type and the call ends. An assignment is skipped unless it is the last expression.
+The body runs its statements in order ([section 4](#4-expressions-and-evaluation-order), item 5). The result of the call is the value of the **`return`** that ends it. A `return` can sit at any depth of `if` and `for` blocks and leaves the whole function. A body that reaches its end without a `return` yields `()`. The value of the last statement is **not** the result.
 
 ```spk
 sign: n number -> string
     if n < 0
-        "negative"
+        return "negative"
     if n = 0
-        "zero"
-    "positive"
+        return "zero"
+    return "positive"
 println (sign 0)
 println (sign 7)
 ```
 
-Runs today and prints `zero` then `positive`. Swahili (`ishara`, `hasi`, `sifuri`, `chanya`, `-> mlolongo`) prints `sifuri` then `chanya`.
+Runs today and prints `zero` then `positive`. Swahili (`ishara`, `hasi`, `sifuri`, `chanya`, `-> mlolongo`, `rudisha`) prints `sifuri` then `chanya`.
 
-A value of the right type produced inside a `for` also ends the call, because the `for` yields it:
+A `return` inside a `for` leaves the loop and the function:
 
 ```spk
 first_big: xs []number -> number
     for x in xs
         if x > 10
-            x
-    0
+            return x
+    return 0
 println "{}" (first_big ([3, 12, 40]))
 ```
 
 Runs today and prints `12`.
 
-If no expression produces a value of the declared type, the call is a runtime error ("the expected return type `number` could not be constructed").
+A returned value must have the declared result type, otherwise the call is a runtime error ("the expected return type `number` could not be constructed"). A body that ends without a `return` yields `()` and is not checked against the declared type (see the note in 7.3).
 
 ### 7.3 What is checked
 
@@ -492,20 +495,20 @@ An empty array `[]` matches any array parameter type.
 | Check | When | Result |
 | --- | --- | --- |
 | Each argument matches its parameter type | at the call | runtime error naming the expected and found types and the argument position |
-| The call produces a value of the declared result type | at the call | runtime error, see 7.2 |
+| A returned value has the declared result type | at the call | runtime error, see 7.2 |
 
 A parameter of type `number` accepts integers and floats. Type errors are runtime errors, found when the line runs, not before the program starts.
 
 ```spk
 f: n number -> number
-    n
+    return n
 println (f "a")
 ```
 
 Runs today and fails with `Runtime error: expected arg type of (number) but got (string), for 1 arg to (function literal 'f: number -> number')`.
 
 > **Current implementation.**
-> - The result check exists, but it is weaker than the README suggests: the first expression of the right type wins, even if it is not the last, so a body of `1` then `2` returns `1`, and a body of `"s"` then `n` in a `-> number` function returns `n`. SPK-110 tightens enforcement. Whether to keep "first expression of the declared type wins" is open ([Open questions](#13-open-questions), item 3).
+> - The result check is minimal (SPK-114): only a value given to `return` is compared with the declared type, and a body that ends without a `return` is not an error even when the declared type is not empty. SPK-110 tightens enforcement.
 > - Extra arguments are silently dropped, and missing ones leave the parameter unbound, which fails later with "is not defined". No ticket yet.
 > - Recursion deeper than a few thousand calls (about 500 in a debug build) aborts the process with a native stack overflow. SPK-905 adds a recursion depth limit, so a runaway program fails with an error instead of aborting.
 
@@ -568,7 +571,7 @@ SPK-303 adds a task value and localized `async` and `await` keywords. Awaiting i
 | Arrays and objects copied, not shared | SPK-104 |
 | One `f64` number type; `/` of whole numbers prints `2`, not `2.0` | SPK-108 |
 | `len` counts bytes; `for` over a string yields byte numbers; no string slicing | SPK-109 |
-| Result type check is first-match, not last-expression | SPK-110 |
+| Result type is checked only for a `return` value; a body without `return` is not an error | SPK-110 |
 | Errors cannot be caught, exit status is 0, no stack trace | SPK-106 |
 | No source line or caret in error output | SPK-107 |
 | One process-wide locale | SPK-801 |
@@ -589,7 +592,7 @@ SPK-303 adds a task value and localized `async` and `await` keywords. Awaiting i
 
 1. **Unicode identifiers.** Should identifiers allow any Unicode letter? Names in Amharic, Gĩkũyũ or Yoruba currently fail to lex, which cuts against the goal of coding in your own language. SPK-109 covers strings only.
 2. **Number details (SPK-108).** Does integer overflow wrap or raise an error? Is there an integer type word beside `number`? Does `1 = 1.0` stay `true`? This spec assumes `number` covers both, overflow is an error, and `1 = 1.0` is `true`.
-3. **Result of a call.** Keep "first expression of the declared type ends the call", or switch to "last expression is the result" with an explicit early exit? An explicit exit needs a new keyword, which the roadmap does not list. This spec keeps today's rule.
+3. **Result of a call.** Settled by SPK-114: a function's result is its `return` value, and `()` if it ends without one. Should a body that ends without `return` be an error when the declared type is not empty? SPK-110 decides.
 4. **Short-circuiting.** Settled by SPK-114: `and` and `or` skip the right operand when the left decides the result.
 5. **Equality of arrays and objects.** Today it is always `false`. With shared references (SPK-104) it could mean identity or contents.
 6. **Wrong argument count.** This spec makes it an error. Partial application, which today half works, is not specified.

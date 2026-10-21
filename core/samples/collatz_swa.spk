@@ -2,16 +2,15 @@
 
 inayofuata: n nambari -> nambari
     kama n % 2 = 0
-        n / 2
-    sivyo
-        3 * n + 1
+        rudisha n / 2
+    rudisha 3 * n + 1
 
 collatz: n nambari -> []nambari
     kama n < 1
-        []
+        rudisha []
     kama n = 1
-        [n]
-    [n] + collatz (inayofuata n) // safu zakusanywa kwa kutumia operesheni ya kuongeza
+        rudisha [n]
+    rudisha [n] + collatz (inayofuata n) // safu zakusanywa kwa kutumia operesheni ya kuongeza
 
 // tafuta mifuatano ya Collatz kwa hifadhi ya upeo
 upeo ni 1_000

@@ -2,16 +2,15 @@
 
 next: n number -> number
     if n % 2 = 0
-        n / 2
-    else
-        3 * n + 1
+        return n / 2
+    return 3 * n + 1
 
 collatz: n number -> []number
     if n < 1
-        []
+        return []
     if n = 1
-        [n]
-    [n] + collatz (next n)
+        return [n]
+    return [n] + collatz (next n)
 
 // run a search for longest collatz sequence under max
 max is 1_000

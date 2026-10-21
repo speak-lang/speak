@@ -14,8 +14,9 @@ literals:
   break: vunja
   in: katika
   if: kama
-  # TODO(native-speaker review): sivyo, na, au, si are proposed words
+  # TODO(native-speaker review): sivyo, na, au, si, rudisha are proposed words
   else: sivyo
+  return: rudisha
   and: na
   or: au
   not: si

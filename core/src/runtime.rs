@@ -192,6 +192,16 @@ impl Context {
         for (i, node) in nodes.into_iter().enumerate() {
             let mut node = node;
             let val = node.eval(&CallerCtx::Undefined, &mut self.frame, false)?;
+            if let Value::ReturnCalled(..) = val {
+                return Err(Err {
+                    message: tr!(
+                        "errors.eval_e8",
+                        a = tr!("literals.return"),
+                        b = node.position().string()
+                    ),
+                    reason: ErrorReason::Runtime,
+                });
+            }
             if i == len - 1 {
                 if dump_frame {
                     self.dump();

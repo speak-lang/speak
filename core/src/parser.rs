@@ -99,6 +99,11 @@ pub enum Node {
     BreakLiteral {
         position: Position,
     },
+    /// `return` with an optional value, leaves the enclosing function.
+    ReturnExpr {
+        value: Option<Box<Node>>,
+        position: Position,
+    },
 }
 
 impl Node {
@@ -252,6 +257,14 @@ impl Node {
             Node::BreakLiteral { position } => {
                 format!("{} ({})", tr!("literals.break"), position.string())
             }
+            Node::ReturnExpr { value, position } => {
+                return format!(
+                    "{} ({}) {}",
+                    tr!("literals.return"),
+                    position.string(),
+                    value.as_ref().map_or(String::new(), |v| v.string())
+                )
+            }
         }
     }
 
@@ -276,6 +289,7 @@ impl Node {
             Node::RangeExpr { position, .. } => position,
             Node::Continueliteral { position } => position,
             Node::BreakLiteral { position } => position,
+            Node::ReturnExpr { position, .. } => position,
         }
     }
 }
@@ -565,6 +579,27 @@ fn parse_atom(
         Kind::ContinueLiteral => {
             return Ok((
                 Node::Continueliteral {
+                    position: tok.position.clone(),
+                },
+                idx,
+            ));
+        }
+
+        Kind::ReturnLiteral => {
+            // the value, if any, is on the same line as `return`
+            if idx < tokens.len() && tokens[idx].position.line == tok.position.line {
+                let (value, consumed) = parse_expression(&tokens[idx..], false, col_bound)?;
+                return Ok((
+                    Node::ReturnExpr {
+                        value: Some(Box::new(value)),
+                        position: tok.position.clone(),
+                    },
+                    idx + consumed,
+                ));
+            }
+            return Ok((
+                Node::ReturnExpr {
+                    value: None,
                     position: tok.position.clone(),
                 },
                 idx,

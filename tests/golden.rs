@@ -24,6 +24,13 @@ fn fizzbuzz_swahili() {
     assert!(run_sample("sw", "fizzbuzz_swa.spk").starts_with(FIZZBUZZ));
 }
 
+// regression: a bare expression statement used to end its block and the program
+#[test]
+fn blocks_run_every_statement() {
+    let out = run_sample("en", "blocks.spk");
+    assert!(out.starts_with("after expression\n1\n2\n3\n"), "{out}");
+}
+
 #[test]
 fn forloop_sample() {
     let out = run_sample("en", "forloop.spk");
