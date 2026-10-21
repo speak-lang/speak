@@ -26,29 +26,29 @@ Here is are implementations of FizzBuzz in Speak.
 English Speak, FizzBuzz.
 
 ```spk
-fizzbuzz: n number -> string
-    if n % 15 = 0 ? "FizzBuzz"
-    if n % 3 = 0 ? "Fizz"
-    if n % 5 = 0 ? "Buzz"
-    sprint n
-
-// call with 100
-println "fizzbuzz result for {} is {}" 100 (fizzbuzz 100)
-print "fizzbuzz result for {} is {} itself" 7 (fizzbuzz 7)
+for i in 1..15
+    if i % 15 = 0
+        println "FizzBuzz"
+    else if i % 3 = 0
+        println "Fizz"
+    else if i % 5 = 0
+        println "Buzz"
+    else
+        println i
 ```
 
 Swahili Speak, FizzBuzz.
 
 ```spk
-fizzbuzz: n nambari -> mlolongo
-    kama n % 15 = 0 ? "FizzBuzz"
-    kama n % 3 = 0 ? "Fizz"
-    kama n % 5 = 0 ? "Buzz"
-    mlolongo_andika n
-
-// ita na nambari 100
-andika_laini "matokeo ya fizzbuzz kwa {} ni {}" 100 (fizzbuzz 100)
-andika "matokeo ya fizzbuzz kwa {} ni {} yenyewe" 7 (fizzbuzz 7)
+kwa i katika 1..15
+    kama i % 15 = 0
+        andika_laini "FizzBuzz"
+    sivyo kama i % 3 = 0
+        andika_laini "Fizz"
+    sivyo kama i % 5 = 0
+        andika_laini "Buzz"
+    sivyo
+        andika_laini i
 ```
 
 English Speak, Fibonacci sequence.
@@ -58,14 +58,17 @@ English Speak, Fibonacci sequence.
 //
 // naive implementation
 fib: n number -> number
-    if n = 0 ? 0
-    if n = 1 ? 1
+    if n = 0
+        0
+    if n = 1
+        1
     (fib n - 1) + (fib n - 2)
 
 // memoized implementation
 memo is [0, 1]
 fibMemo: n number -> number
-    if memo[n] = () ? memo[n] is (fibMemo n - 1) + (fibMemo n - 2)
+    if memo[n] = ()
+        memo[n] is (fibMemo n - 1) + (fibMemo n - 2)
     memo[n]
 
 println "Naive solution: {}" (fib 20)
@@ -77,14 +80,17 @@ Swahili Speak, Fibonacci sequence.
 ```spk
 // utekelezaji jinga
 fib: n nambari -> nambari
-    kama n = 0 ? 0
-    kama n = 1 ? 1
+    kama n = 0
+        0
+    kama n = 1
+        1
     (fib n - 1) + (fib n - 2)
 
 // utekelezaji wa kumbukumbu
 kumbukumbu ni [0,1]
 fibKumbukumbu: n nambari -> nambari
-    kama kumbukumbu[n] = () ? kumbukumbu[n] ni (fibKumbukumbu n -1) + (fibKumbukumbu n - 2)
+    kama kumbukumbu[n] = ()
+        kumbukumbu[n] ni (fibKumbukumbu n -1) + (fibKumbukumbu n - 2)
     kumbukumbu[n]
 
 andika_laini "Matokeo ya utekelezaji jinga: {}" (fib 20)
@@ -97,11 +103,16 @@ English Speak, Collatz sequence.
 // finding long collatz sequences
 
 next: n number -> number
-    if n % 2 = 0 ? n / 2 ! 3 * n + 1
+    if n % 2 = 0
+        n / 2
+    else
+        3 * n + 1
 
 collatz: n number -> []number
-    if n < 1 ? []
-    if n = 1 ? [n]
+    if n < 1
+        []
+    if n = 1
+        [n]
     [n] + collatz (next n) // arrays can be appended by AddOp
 
 // run a search for longest collatz sequence under max
@@ -116,11 +127,16 @@ Swahili Speak, Collatz sequence.
 // kutafuta mifuatano ya Collatz
 
 inayofuata: n nambari -> nambari
-    kama n % 2 = 0 ? n / 2 ! 3 * n + 1
+    kama n % 2 = 0
+        n / 2
+    sivyo
+        3 * n + 1
 
 collatz: n nambari -> []nambari
-    kama n < 1 ? []
-    kama n = 1 ? [n]
+    kama n < 1
+        []
+    kama n = 1
+        [n]
     [n] + collatz (inayofuata n) // safu zakusanywa kwa kutumia operesheni ya kuongeza
 
 // tafuta mifuatano ya Collatz kwa hifadhi ya upeo

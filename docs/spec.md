@@ -1,6 +1,6 @@
 # Speak language specification, v0.2
 
-Status: draft for ticket SPK-101. Version 0.2 is the target of milestone M1 in the [roadmap](roadmap.md).
+Status: draft for ticket SPK-101, revised by SPK-114 (simpler, Go-style syntax). Version 0.2 is the target of milestone M1 in the [roadmap](roadmap.md).
 
 This document says what a Speak program means. It does three things:
 
@@ -16,7 +16,7 @@ A Speak program is a UTF-8 text file made of expressions. Running it evaluates t
 
 Every word that a learner can read in source code comes from a locale file, not from the interpreter: keywords, type names, builtin names and error messages. This document refers to such words by their locale key, for example `literals.if`, and shows the English and Swahili words in [section 2.3](#23-words-from-the-locale). A new language adds its own words by editing a YAML file. No English word is special.
 
-Punctuation and operators (`? ! -> : . .. ( ) [ ] { } + - * / % & | < > = ~ ,`) are the same in every locale.
+Punctuation and operators (`-> : . .. ( ) [ ] { } + - * / % < > = ~ ,`) are the same in every locale.
 
 > **Current implementation.** One locale is active for the whole process, chosen by the `SPEAK` environment variable (`en` by default, `sw` for Swahili). A file cannot say which language it is written in. SPK-801 replaces this with a per-file locale, and SPK-807 lets one file declare several locales (see [2.4](#24-reserved-words-and-mixed-locales)).
 
@@ -38,8 +38,8 @@ Punctuation and operators (`? ! -> : . .. ( ) [ ] { } + - * / % & | < > = ~ ,`) 
 | Empty literal | `()` |
 | Empty identifier | `_` followed by a space. Used where a value is thrown away. |
 | Type name | The locale words for `types.number`, `types.bool`, `types.string`, and array types `[]T` (for example `[]number`, `[][]string`). |
-| Punctuation | `, : :: . .. -> ? !` and the brackets `( ) [ ] { }`. |
-| Operators | `+ - * / % & \| < > = ~`, and the locale word `literals.is`. |
+| Punctuation | `, : :: . .. ->` and the brackets `( ) [ ] { }`. |
+| Operators | `+ - * / % < > = ~`, and the locale words `literals.is`, `literals.and`, `literals.or` and `literals.not`. |
 
 A number literal never includes a sign. `-5` is the operator `-` applied to `5`; write a negative number as `~5` or `0 - 5`.
 
@@ -58,6 +58,10 @@ An integer literal has no `.`; a float literal has one. This follows the numbers
 | `literals.true` | `true` | `kweli` | boolean literal |
 | `literals.false` | `false` | `ongo` | boolean literal |
 | `literals.if` | `if` | `kama` | conditional |
+| `literals.else` | `else` | `sivyo` | other branch of a conditional |
+| `literals.and` | `and` | `na` | logical and |
+| `literals.or` | `or` | `au` | logical or |
+| `literals.not` | `not` | `si` | logical not |
 | `literals.for` | `for` | `kwa` | loop |
 | `literals.in` | `in` | `katika` | loop |
 | `literals.break` | `break` | `vunja` | leave a loop |
@@ -75,6 +79,8 @@ An integer literal has no `.`; a float literal has one. This follows the numbers
 | `builtins.len` | `len` | `urefu` | builtin |
 | `builtins.mod` | `mod` | `moduli` | builtin |
 
+The Swahili words for `else`, `and`, `or` and `not` (`sivyo`, `na`, `au`, `si`) are proposals and need review by native speakers; the locale file marks them with a comment. They do not collide with any other keyword or builtin word.
+
 The `types.native_function` word (`native function`, `kazi asilia`) names builtins when they are printed. It is not written in source.
 
 ### 2.4 Reserved words and mixed locales
@@ -89,19 +95,20 @@ In a file that declares several locales (SPK-807), the keywords and type names o
 
 ### 3.1 Notation
 
-EBNF: `|` choice, `[ ]` optional, `{ }` zero or more, `( )` grouping, quoted text is literal punctuation. Words in capitals are tokens from [section 2](#2-lexical-structure): `IDENT`, `NUMBER`, `STRING`, and the locale words `IF`, `FOR`, `IN`, `IS`, `TRUE`, `FALSE`, `BREAK`, `CONTINUE`. `TYPENAME` is a type word.
+EBNF: `|` choice, `[ ]` optional, `{ }` zero or more, `( )` grouping, quoted text is literal punctuation. Words in capitals are tokens from [section 2](#2-lexical-structure): `IDENT`, `NUMBER`, `STRING`, and the locale words `IF`, `ELSE`, `FOR`, `IN`, `IS`, `AND`, `OR`, `NOT`, `TRUE`, `FALSE`, `BREAK`, `CONTINUE`. `TYPENAME` is a type word.
 
 ### 3.2 Grammar
 
 ```ebnf
 program       = { expression } ;
 
-expression    = logical [ IS expression ] ;               (* assignment: lowest precedence *)
-logical       = comparison { ( "&" | "|" ) comparison } ;
+expression    = or [ IS expression ] ;                    (* assignment: lowest precedence *)
+or            = and { OR and } ;
+and           = not { AND not } ;
+not           = NOT not | comparison ;
 comparison    = additive { ( "<" | ">" | "=" ) additive } ;
 additive      = multiplicative { ( "+" | "-" ) multiplicative } ;
-multiplicative= modulo { ( "*" | "/" ) modulo } ;
-modulo        = access { "%" access } ;                   (* binds tighter than "*" *)
+multiplicative= access { ( "*" | "/" | "%" ) access } ;
 access        = operand { "." IDENT } ;                   (* field access: highest precedence *)
 
 operand       = "~" operand | application ;
@@ -120,8 +127,9 @@ array         = "[" [ expression { "," expression } [ "," ] ] "]" ;
 object-fields = "{" { field } "}" ;
 field         = IDENT ( "," | IDENT [ "," ] ) ;           (* "x," or "x y," or "x y" before "}" *)
 
-if            = IF expression [ "?" expression ] [ "!" expression ] ;
-for           = FOR IDENT IN expression block ;
+if            = IF expression block [ ELSE ( if | block ) ] ;   (* ELSE aligns with IF *)
+for           = FOR [ IDENT IN range-or-expr | expression ] block ;
+range-or-expr = expression [ ".." expression ] ;          (* a range is allowed only here *)
 function      = IDENT ":" [ params ] "->" type block ;
 params        = group { "," group } ;
 group         = IDENT { "," IDENT } type ;                (* "a, b number" or "n number" *)
@@ -133,15 +141,16 @@ Notes on the grammar:
 
 - `operand-no-call` is `operand` with the `application` alternative replaced by `primary`: inside an argument list, a name does not start a nested call. So `f g x` passes `g` and `x` to `f`. Use parentheses to nest: `f (g x)`.
 - A call has no brackets. `fib n - 1` calls `fib` with one argument, `n - 1`, because an argument extends over any binary operators that follow it. Write `(fib n - 1) + (fib n - 2)`, as the samples do.
-- Binary operators from loosest to tightest: `is`, `&` `|`, `<` `>` `=`, `+` `-`, `*` `/`, `%`, `.`. Operators of one level group left to right. Note that `%` binds tighter than `*`: `2 * 7 % 4` is `2 * (7 % 4)`.
+- Operators from loosest to tightest: `is`, `or`, `and`, `not` (prefix), `<` `>` `=`, `+` `-`, `*` `/` `%`, `.`. This is the order from school maths: `*`, `/` and `%` share one level, above `+` and `-`, which sit above the comparisons. Operators of one level group left to right, so `2 + 3 * 4 % 5` is `2 + ((3 * 4) % 5)`, which is `4`. `not` takes everything that binds tighter than `and`: `not a = b` is `not (a = b)`, and `not a and b` is `(not a) and b`.
 - An `object-fields` block follows an identifier directly: `Person { name, age years, }`. A field `x,` takes its value from the variable `x`. A field `x y,` takes it from the variable `y`. The right-hand side is always a variable name, never a literal or expression.
 - On the left of `is` the only legal forms are an identifier, `_`, an indexed element `a[i]`, or a field `object.field`. Anything else is a runtime error.
-- In `if`, the arms may appear in either order and each may be left out. They may continue on the next line.
+- `if` takes a condition and an indented block. After the block, an optional `else` at the same column as the `if` takes either another `if` (making `else if`) or an indented block. A block may be empty. The old `if cond ? a ! b` form is gone.
+- `for` has three forms, all followed by an indented block: `for x in iterable` runs the block once per element, `for condition` runs it while the condition is `true`, and a bare `for` with nothing after it on its line runs it until `break`. The loop variable of `for x in` must be an identifier.
+- `a..b` is a **range**: the numbers from `a` up to and including `b`, so `1..15` is `1, 2, ..., 15`. Both ends must be whole numbers. If `a` is greater than `b` the range is empty. A range may only appear after `in` in a `for`; it is not a value that can be stored (use an array for that). Inside `[ ]`, `..` still means a slice, whose end is exclusive.
 - `function` is a definition: `name: params -> type`, then the body. The same `IDENT ":"` starts every definition, so a name followed by a colon is always a function.
 - `_` is the empty identifier. `_ is expr` evaluates `expr` and discards the result.
 
 > **Current implementation.**
-> - `&` and `|` are not part of the precedence climb: they work between two operands (`a | b`, `(x < 1) & (y < 2)`) but not in a chain or next to comparison operators (`x < 1 & y < 2` is a syntax error). There is no ticket yet; the grammar above is the intended v0.2 form.
 > - `~` can be applied only to a literal, and only where an operand starts. `~5` and `(~5)` work; `~x` is a runtime error, and an argument list cannot start with `~` (`println ~5` is a syntax error, `println (~5)` works). No ticket yet.
 > - An index must be a number literal or a bare identifier: `a[n]` works, `a[n - 1]` is a syntax error. No ticket yet.
 > - A function with no parameters can be written (`f: -> number`) but cannot be called, because a call needs at least one argument. No ticket yet.
@@ -152,8 +161,8 @@ Notes on the grammar:
 
 Blocks are decided by indentation, measured in columns.
 
-- The **body of a function** is every following expression whose first token is in a column greater than the column of the function's name. The body of a **`for`** is every following expression whose first token is in a column greater than the column of the `for` keyword. A body ends at the first token that is not indented further.
-- An expression ends at the end of its line, unless the line ends with an operator, a comma, `?`, `!`, or an opening `(`, `[` or `{`. Then it continues on the next line. A closing bracket may appear on a later line.
+- The **body of a function** is every following expression whose first token is in a column greater than the column of the function's name. The block of an **`if`**, **`else`** or **`for`** is every following expression whose first token is in a column greater than the column of the `if` (or `for`) keyword; `else` must be in the same column as its `if`, which ends the block before it. A body ends at the first token that is not indented further.
+- An expression ends at the end of its line, unless the line ends with an operator, a comma, or an opening `(`, `[` or `{`. Then it continues on the next line. A closing bracket may appear on a later line.
 - A top-level expression that continues onto a new line must be indented past column 1.
 
 ```spk
@@ -167,10 +176,10 @@ Evaluation is eager and strict, and runs strictly top to bottom through a file.
 
 1. **Top level.** Expressions are evaluated one after another. The first error ends the program (see [section 9](#9-errors)).
 2. **Literals** evaluate to themselves. An array literal evaluates its elements left to right.
-3. **Binary operators** evaluate the left operand, then the right operand, then apply the operator. Both operands are always evaluated: `&` and `|` do not skip the right side. Whether they should is open ([Open questions](#13-open-questions), item 4).
+3. **Binary operators** evaluate the left operand, then the right operand, then apply the operator. The exception is `and` and `or`, which skip the right operand when the left one decides the result (`false and x` is `false`, `true or x` is `true`).
 4. **Calls** evaluate the arguments left to right, each completely before the next, then call the function. Arguments are passed by value for numbers, booleans and strings, and by shared reference for arrays and objects ([5.5](#55-references)).
-5. **`if`** evaluates the condition, which must be a `bool`, then evaluates only the chosen arm. A missing arm yields `()`. (Today a string is also accepted as a condition, and an empty string counts as true; no ticket yet.)
-6. **`for`** evaluates the iterable once, then runs the body once per element, in order.
+5. **`if`** evaluates the condition, which must be a `bool`, then evaluates only the chosen block. `if` is an expression: its value is the value of the block, and a block ends early at the first statement that yields a value other than `()` or an assignment, so that value (a `break` or `continue` too) becomes the value of the `if`. A missing `else` yields `()`. This is what lets `if` return early from a function ([7.2](#72-result-of-a-call)). (Today a string is also accepted as a condition, and an empty string counts as true; no ticket yet.)
+6. **`for x in`** evaluates the iterable once, then runs the body once per element, in order. **`for condition`** evaluates the condition before every turn and stops when it is `false`; a condition that is not a `bool` is a runtime error. A bare **`for`** never stops by itself. In all three forms `break` leaves the loop and `continue` goes to the next turn. A `for` yields `()`, unless the body produced a value that should leave the enclosing function ([7.2](#72-result-of-a-call)).
 7. **Assignment** `target is value` evaluates `value` first, then binds or updates `target` (see [section 6](#6-scoping-and-closures)).
 
 Operand types not listed in the table below are a runtime error.
@@ -185,15 +194,14 @@ Operand types not listed in the table below are a runtime error.
 | `%` | number, number | remainder. A zero divisor is a runtime error. |
 | `<` `>` | number, number, or string, string | `bool`; strings compare by code point |
 | `=` | any two values of the same primitive type, or two `()` | `bool`; values of different types are never equal |
-| `&` `\|` | bool, bool | logical and / or |
-| `&` `\|` | whole numbers | bitwise and / or |
+| `and` `or` | bool, bool | logical and / or, right side skipped when the left decides |
+| `not` | bool | logical not |
 | `~` | number | negation |
-| `~` | bool | logical not |
 | `.` | object, field name | the field's value |
 
 The result of `/` is always a float, even when both operands are integers: `6 / 3` is `2.0`, `7 / 2` is `3.5` (SPK-108). Mixing an integer and a float in `+ - * %` gives a float.
 
-> **Current implementation.** There is one number type, so `6 / 3` prints `2`. `bool + bool` acts as "or" and `bool * bool` as "and"; these are not part of v0.2, which uses `|` and `&`. Equality of arrays and objects is always `false`; see [Open questions](#13-open-questions), item 5. `1 = 1.0` is `true`.
+> **Current implementation.** There is one number type, so `6 / 3` prints `2`. `bool + bool` acts as "or" and `bool * bool` as "and"; these are not part of v0.2, which uses `or` and `and`. `~` also still flips a bool; v0.2 uses `not`. The bitwise `&` and `|` on whole numbers were removed by SPK-114; there is no replacement yet. Equality of arrays and objects is always `false`; see [Open questions](#13-open-questions), item 5. `1 = 1.0` is `true`.
 
 > **Current implementation.** Tail calls are meant to be optimized (the interpreter builds thunks for them), but in practice a self-recursive call in tail position still overflows the native stack: a 4,000-deep tail-recursive function aborted in a release build. See [Open questions](#13-open-questions), item 7.
 
@@ -203,12 +211,12 @@ Example (runs today):
 a is 7
 b is 2
 println "{} / {} = {}" a b (a / b)
-println "{}" (2 + 3 % 2 * 4)
+println "{}" (2 + 3 * 4 % 5)
 ```
 
 ```text
 7 / 2 = 3.5
-6
+4
 ```
 
 The same in Swahili (runs today with `SPEAK=sw`):
@@ -222,6 +230,80 @@ andika_laini "{} / {} = {}" a b (a / b)
 ```text
 7 / 2 = 3.5
 ```
+
+### 4.1 Conditions, loops and ranges
+
+FizzBuzz (runs today), counting from 1 to 15 with both ends included:
+
+```spk
+for i in 1..15
+    if i % 15 = 0
+        println "FizzBuzz"
+    else if i % 3 = 0
+        println "Fizz"
+    else if i % 5 = 0
+        println "Buzz"
+    else
+        println i
+```
+
+```text
+1
+2
+Fizz
+4
+Buzz
+Fizz
+7
+8
+Fizz
+Buzz
+11
+Fizz
+13
+14
+FizzBuzz
+```
+
+The same in Swahili (runs today with `SPEAK=sw`):
+
+```spk
+kwa i katika 1..15
+    kama i % 15 = 0
+        andika_laini "FizzBuzz"
+    sivyo kama i % 3 = 0
+        andika_laini "Fizz"
+    sivyo kama i % 5 = 0
+        andika_laini "Buzz"
+    sivyo
+        andika_laini i
+```
+
+prints the same fifteen lines. The other two loop forms, and `and`, `or`, `not` (runs today):
+
+```spk
+n is 0
+for n < 3
+    n is n + 1
+println "{}" n
+
+for
+    n is n + 1
+    if n > 5
+        break
+println "{}" n
+
+if not n < 3 and (n = 6 or n = 7)
+    println "ok"
+```
+
+```text
+3
+6
+ok
+```
+
+In Swahili, `kwa n < 3` is the loop with a condition, a bare `kwa` loops until `vunja`, and the last test reads `kama si n < 3 na (n = 6 au n = 7)`.
 
 ## 5. Values and types
 
@@ -241,7 +323,7 @@ Planned in the roadmap and not specified here: bytes and map (SPK-108), error va
 
 ### 5.1 Numbers
 
-v0.2 has two numeric representations, `i64` integers and `f64` floats (SPK-108). A literal without a `.` is an integer; a literal with a `.` is a float. `/` always yields a float. The type word `number` accepts both; v0.2 declares no separate type word for integers (see [Open questions](#13-open-questions), item 2). Array indexes, slice bounds and the operands of bitwise `&` and `|` must be integers. Integer overflow is an error (item 2 of the open questions covers whether it wraps instead).
+v0.2 has two numeric representations, `i64` integers and `f64` floats (SPK-108). A literal without a `.` is an integer; a literal with a `.` is a float. `/` always yields a float. The type word `number` accepts both; v0.2 declares no separate type word for integers (see [Open questions](#13-open-questions), item 2). Array indexes, slice bounds and the ends of a range must be integers. Integer overflow is an error (item 2 of the open questions covers whether it wraps instead).
 
 ### 5.2 Strings
 
@@ -294,13 +376,13 @@ Numbers, booleans and strings are values. Arrays and objects are **shared refere
 
 ### 5.6 Empty
 
-`()` is the empty value. It is the value of an `if` with no matching arm, of a `for`, of `println`, and of an out-of-range index. Its type is the empty type. `()` is not a `bool`; using it as an `if` condition is a runtime error.
+`()` is the empty value. It is the value of an `if` with no matching block, of a `for`, of `println`, and of an out-of-range index. Its type is the empty type. `()` is not a `bool`; using it as an `if` condition is a runtime error.
 
 ## 6. Scoping and closures
 
 Scoping is **lexical** (SPK-103). The environment of a function is the one in which its definition was evaluated, not the one of its caller.
 
-- **Scopes.** The top level of a file has one global scope. Each function call creates a new scope whose parent is the scope where the function was defined. A `for` loop creates a scope for its body, with the loop variable bound in it; its parent is the scope containing the loop. `if` arms do not create scopes.
+- **Scopes.** The top level of a file has one global scope. Each function call creates a new scope whose parent is the scope where the function was defined. A `for x in` loop creates a scope for its body, with the loop variable bound in it; its parent is the scope containing the loop. The other two forms of `for`, and `if` blocks, do not create scopes.
 - **Lookup.** A name is looked up in the current scope, then in each enclosing scope in turn. A name found nowhere is an error of the system category.
 - **Binding and assignment.** `name is value` updates the nearest existing binding of `name` in the current or an enclosing scope. If there is none, it creates a binding in the current scope. Parameters and loop variables are bindings created fresh in their scope, so they can hide an outer name of the same spelling.
 - **Function definitions.** `name: ... ` creates (or replaces) a binding for `name` in the current scope. Functions are ordinary values: they can be stored, passed and returned.
@@ -354,16 +436,7 @@ v0.2 prints `20`. The interpreter today prints `6`, because `times` sees the cal
 
 > **Current implementation.** Scoping is dynamic: a call pushes its arguments onto the caller's frame chain, and a function value stores only its syntax. A nested function cannot read its parent's variables after the parent returns, so the counter example fails with "count is not defined". Closing the gap: SPK-103.
 
-> **Current implementation.** Assigning to an outer variable inside a `for` body does not update it. In this program `count` stays `0`; it should print `3`:
->
-> ```spk
-> count is 0
-> for i in [1, 2, 3]
->     count is count + 1
-> println "{}" count
-> ```
->
-> The Swahili equivalent (`jumla`, `kwa i katika`) also prints `0`. The loop runs on a copy of the frame. SPK-103 removes the copy. The same happens inside functions, so a sum written with `for` inside a function returns its starting value.
+Because a `for` body runs in the live scope chain, assigning to an outer variable inside it updates that variable (SPK-114): `count is count + 1` in a loop counts, in a function as much as at top level.
 
 ## 7. Functions and type checking
 
@@ -382,12 +455,14 @@ name: param1, param2 type, param3 type -> result-type
 
 ### 7.2 Result of a call
 
-The body is a sequence of expressions evaluated in order. An expression whose value has the **declared result type** ends the call, and that value is the result. Expressions of any other type, including `()`, do not end it. This is how early exit works in Speak: an `if` with no matching arm yields `()` and the body goes on, and one that matches yields a value of the right type and the call ends. An assignment is skipped unless it is the last expression.
+The body is a sequence of expressions evaluated in order. An expression whose value has the **declared result type** ends the call, and that value is the result. Expressions of any other type, including `()`, do not end it. This is how early exit works in Speak: an `if` with no matching block yields `()` and the body goes on, and one that matches yields a value of the right type and the call ends. An assignment is skipped unless it is the last expression.
 
 ```spk
 sign: n number -> string
-    if n < 0 ? "negative"
-    if n = 0 ? "zero"
+    if n < 0
+        "negative"
+    if n = 0
+        "zero"
     "positive"
 println (sign 0)
 println (sign 7)
@@ -400,7 +475,8 @@ A value of the right type produced inside a `for` also ends the call, because th
 ```spk
 first_big: xs []number -> number
     for x in xs
-        if x > 10 ? x
+        if x > 10
+            x
     0
 println "{}" (first_big ([3, 12, 40]))
 ```
@@ -489,7 +565,6 @@ SPK-303 adds a task value and localized `async` and `await` keywords. Awaiting i
 | Gap in today's interpreter | Closed by |
 | --- | --- |
 | Dynamic scoping, no closures | SPK-103 |
-| `for` body cannot update outer variables | SPK-103 |
 | Arrays and objects copied, not shared | SPK-104 |
 | One `f64` number type; `/` of whole numbers prints `2`, not `2.0` | SPK-108 |
 | `len` counts bytes; `for` over a string yields byte numbers; no string slicing | SPK-109 |
@@ -503,7 +578,7 @@ SPK-303 adds a task value and localized `async` and `await` keywords. Awaiting i
 | Native stack overflow on deep recursion, no depth limit | SPK-905 (limit), SPK-103 |
 | Tail calls not optimized | none |
 | Empty string `""`, out-of-range slice and too few `{}` arguments panic | none |
-| `&` `\|` do not chain or mix with comparisons; `~x` and `println ~5` fail | none |
+| `~x` and `println ~5` fail | none |
 | Index must be a literal or identifier | none |
 | Zero-parameter functions cannot be called; object/function parameter types fail | none |
 | Wrong argument count not an error | none |
@@ -515,7 +590,7 @@ SPK-303 adds a task value and localized `async` and `await` keywords. Awaiting i
 1. **Unicode identifiers.** Should identifiers allow any Unicode letter? Names in Amharic, Gĩkũyũ or Yoruba currently fail to lex, which cuts against the goal of coding in your own language. SPK-109 covers strings only.
 2. **Number details (SPK-108).** Does integer overflow wrap or raise an error? Is there an integer type word beside `number`? Does `1 = 1.0` stay `true`? This spec assumes `number` covers both, overflow is an error, and `1 = 1.0` is `true`.
 3. **Result of a call.** Keep "first expression of the declared type ends the call", or switch to "last expression is the result" with an explicit early exit? An explicit exit needs a new keyword, which the roadmap does not list. This spec keeps today's rule.
-4. **Short-circuiting.** Should `&` and `|` skip the right operand when the left decides the result? This spec evaluates both.
+4. **Short-circuiting.** Settled by SPK-114: `and` and `or` skip the right operand when the left decides the result.
 5. **Equality of arrays and objects.** Today it is always `false`. With shared references (SPK-104) it could mean identity or contents.
 6. **Wrong argument count.** This spec makes it an error. Partial application, which today half works, is not specified.
 7. **Tail calls.** The roadmap says tail-call optimization should survive the rewrite, but the interpreter does not do it today. Is it a v0.2 requirement? It is cheap to promise and costly to add later.
