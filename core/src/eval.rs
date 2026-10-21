@@ -110,6 +110,9 @@ pub mod value {
         ContinueCalled,
 
         BreakCalled,
+
+        /// `return` unwinding to the enclosing function, carrying the returned value.
+        ReturnCalled(Box<Value>),
     }
 
     #[derive(Debug, Clone)]
@@ -143,6 +146,7 @@ pub mod value {
                 Value::Empty => Type::Empty,
                 Value::Assignment(val) => val.value_type(),
                 Value::ContinueCalled | Value::BreakCalled => Type::Empty,
+                Value::ReturnCalled(val) => val.value_type(),
             }
         }
 
@@ -181,6 +185,7 @@ pub mod value {
                 Value::Assignment(val) => val.string(),
                 Value::ContinueCalled => tr!("literals.continue"),
                 Value::BreakCalled => tr!("literals.break"),
+                Value::ReturnCalled(val) => val.string(),
             }
         }
     }
@@ -302,6 +307,14 @@ impl Node {
                         }),
                     },
 
+                    Kind::NotOp => match operand.eval(ctx, stack, false)? {
+                        Value::Bool(val) => Ok(Value::Bool(!val)),
+                        val => Err(Err {
+                            message: tr!("errors.eval_e3", a = val.string(), b = position.string()),
+                            reason: ErrorReason::Runtime,
+                        }),
+                    },
+
                     _ => Err(Err {
                         message: tr!(
                             "errors.eval_e4",
@@ -411,6 +424,31 @@ impl Node {
                     }),
                 }
             }
+            Node::RangeExpr {
+                start,
+                end,
+                position,
+            } => {
+                // shortcut: built eagerly as an array, a lazy range is needed for huge ranges
+                match (start.eval(ctx, stack, false)?, end.eval(ctx, stack, false)?) {
+                    (Value::Number(a), Value::Number(b)) if is_intable(&a) && is_intable(&b) => {
+                        Ok(Value::Array(
+                            Type::Number,
+                            (a as i64..=b as i64).map(|i| Value::Number(i as f64)).collect(),
+                        ))
+                    }
+                    (a, b) => Err(Err {
+                        message: tr!(
+                            "errors.eval_range_e1",
+                            a = a.string(),
+                            b = b.string(),
+                            c = position.string()
+                        ),
+                        reason: ErrorReason::Runtime,
+                    }),
+                }
+            }
+
             Node::IfExpr { .. } => eval_if_expr_node(ctx, self, stack, allow_thunk),
 
             Node::ForExpr { .. } => eval_for_expr_node(ctx, self, stack, allow_thunk),
@@ -427,6 +465,11 @@ impl Node {
                 }),
             },
 
+            Node::ReturnExpr { value, .. } => Ok(Value::ReturnCalled(Box::new(match value {
+                Some(value) => value.eval(ctx, stack, false)?,
+                None => Value::Empty,
+            }))),
+
             Node::BreakLiteral { .. } => match ctx {
                 CallerCtx::InLoop => Ok(Value::BreakCalled),
                 _ => Err(Err {
@@ -440,6 +483,27 @@ impl Node {
             },
         }
     }
+}
+
+/// Evaluates every statement of a block in order. Only `return`, `break` and `continue`
+/// (and errors) leave early. The value of the block is the value of its last statement.
+fn eval_block(
+    ctx: &CallerCtx,
+    body: &[Node],
+    stack: &mut StackFrame,
+    allow_thunk: bool,
+) -> Result<Value, Err> {
+    let mut last = Value::Empty;
+    for stmt in body {
+        last = stmt.clone().eval(ctx, stack, allow_thunk)?;
+        if matches!(
+            last,
+            Value::ReturnCalled(..) | Value::BreakCalled | Value::ContinueCalled
+        ) {
+            break;
+        }
+    }
+    Ok(last)
 }
 
 fn eval_if_expr_node(
@@ -459,23 +523,10 @@ fn eval_if_expr_node(
         let mut condition = condition.as_ref().clone();
         let val = condition.eval(ctx, stack, allow_thunk)?;
 
-        let mut ret = |val| {
-            if val {
-                return match on_true {
-                    Some(on_true) => {
-                        let mut on_true = on_true.as_ref().clone();
-                        on_true.eval(ctx, stack, allow_thunk)
-                    }
-                    None => Ok(Value::Empty),
-                };
-            }
-            match on_false {
-                Some(on_false) => {
-                    let mut on_false = on_false.as_ref().clone();
-                    on_false.eval(ctx, stack, allow_thunk)
-                }
-                None => Ok(Value::Empty),
-            }
+        let mut ret = |val| match (val, on_false) {
+            (true, _) => eval_block(ctx, on_true, stack, allow_thunk),
+            (false, Some(on_false)) => eval_block(ctx, on_false, stack, allow_thunk),
+            (false, None) => Ok(Value::Empty),
         };
 
         return match val {
@@ -511,16 +562,58 @@ fn eval_for_expr_node(
         position,
     } = node
     {
-        let mut iterable = iterable.as_ref().clone();
-        let val = iterable.eval(ctx, stack, allow_thunk)?;
+        // runs the body once; `Some` leaves the loop with that value, `None` goes on
+        let run_body = |stack: &mut StackFrame| -> Result<Option<Value>, Err> {
+            Ok(
+                match eval_block(&CallerCtx::InLoop, body, stack, allow_thunk)? {
+                    Value::BreakCalled => Some(Value::Empty),
+                    // a `return` leaves the loop and the function around it
+                    ret @ Value::ReturnCalled(..) => Some(ret),
+                    _ => None,
+                },
+            )
+        };
 
-        let var: String = match variable.as_ref() {
+        let (var, mut iterable) = match (variable, iterable) {
+            (Some(var), Some(iterable)) => (var, iterable.as_ref().clone()),
+
+            // for condition
+            (None, Some(cond)) => loop {
+                let val = cond.as_ref().clone().eval(ctx, stack, allow_thunk)?;
+                match val {
+                    Value::Bool(true) => {}
+                    Value::Bool(false) => return Ok(Value::Empty),
+                    _ => {
+                        return Err(Err {
+                            message: tr!(
+                                "errors.eval_if_expr_node_e1",
+                                a = cond.string(),
+                                b = position.string()
+                            ),
+                            reason: ErrorReason::Runtime,
+                        })
+                    }
+                }
+                if let Some(ret) = run_body(stack)? {
+                    return Ok(ret);
+                }
+            },
+
+            // bare for, loops until break
+            _ => loop {
+                if let Some(ret) = run_body(stack)? {
+                    return Ok(ret);
+                }
+            },
+        };
+
+        let var = match var.as_ref() {
             Node::Identifier { value, .. } => value.clone(),
             _ => {
                 return Err(Err {
                     message: tr!(
                         "errors.eval_e7",
-                        a = variable.string(),
+                        a = var.string(),
                         b = position.string()
                     ),
                     reason: ErrorReason::Runtime,
@@ -528,58 +621,12 @@ fn eval_for_expr_node(
             }
         };
 
-        match val {
-            Value::String(val) => {
-                // we only loop if there's a body
-                if let Some(body) = body.as_ref() {
-                    let mut stack = stack.clone();
-                    'outer: for c in val.chars() {
-                        stack.set(var.clone(), Value::Number(c as u8 as f64));
-                        let mut body = body.clone();
-                        for stmt in body.iter_mut() {
-                            let ret = stmt.eval(&CallerCtx::InLoop, &mut stack, allow_thunk)?;
-                            match ret {
-                                // if the loop returns an non empty value continue current loop
-                                Value::Empty | Value::Assignment(..) => continue,
-                                // if contine is called continue outer loop
-                                Value::ContinueCalled => continue 'outer,
-                                // if break is called break from outer loop
-                                Value::BreakCalled => break 'outer,
-                                // else return value
-                                _ => return Ok(ret),
-                            }
-                        }
-                    }
-                }
-
-                return Ok(Value::Empty);
-            }
-
-            Value::Array(_, items) => {
-                // we only loop if there's a body
-                if let Some(body) = body.as_ref() {
-                    let mut stack = stack.clone();
-                    'outer: for item in items {
-                        stack.set(var.clone(), item);
-                        let mut body = body.clone();
-                        for stmt in body.iter_mut() {
-                            let ret = stmt.eval(&CallerCtx::InLoop, &mut stack, allow_thunk)?;
-                            match ret {
-                                // if the loop returns an non empty value continue current loop
-                                Value::Empty | Value::Assignment(..) => continue,
-                                // if contine is called continue outer loop
-                                Value::ContinueCalled => continue 'outer,
-                                // if break is called break from outer loop
-                                Value::BreakCalled => break 'outer,
-                                // else return value
-                                _ => return Ok(ret),
-                            }
-                        }
-                    }
-                }
-
-                return Ok(Value::Empty);
-            }
+        let items = match iterable.eval(ctx, stack, allow_thunk)? {
+            Value::String(val) => val
+                .chars()
+                .map(|c| Value::Number(c as u8 as f64))
+                .collect::<Vec<_>>(),
+            Value::Array(_, items) => items,
             _ => {
                 return Err(Err {
                     message: tr!(
@@ -590,7 +637,22 @@ fn eval_for_expr_node(
                     reason: ErrorReason::Runtime,
                 });
             }
-        }
+        };
+
+        // the loop variable lives in its own frame; updates to outer variables still reach them
+        stack.push_frame(VTable(HashMap::new()));
+        let res = (|| {
+            for item in items {
+                stack.set(var.clone(), item);
+                if let Some(ret) = run_body(stack)? {
+                    return Ok(ret);
+                }
+            }
+            Ok(Value::Empty)
+        })();
+        stack.pop_frame()?;
+
+        return res;
     }
 
     Err(Err {
@@ -995,90 +1057,38 @@ fn eval_binary_expr_node(
                 }
             }
 
-            Kind::LogicalAndOp => {
-                let (left_value, right_value) = left_right()?;
-                match left_value {
-                    // the LogicalAndOp will perform a bitwise and; `&`.
-                    Value::Number(left_num) => {
-                        if is_intable(&left_num)
-                            && let Value::Number(right_num) = right_value
-                            && is_intable(&right_num)
-                        {
-                            return Ok(Value::Number((left_num as i64 & right_num as i64) as f64));
-                        }
+            Kind::LogicalAndOp | Kind::LogicalOrOp => {
+                let is_and = *operator == Kind::LogicalAndOp;
+                let mut l = left_operand.as_ref().clone();
+                let left_value = l.eval(ctx, stack, false)?;
 
-                        return Err(Err {
-                            message: tr!(
-                                "errors.eval_binary_expr_node_e11",
-                                a = left_value.string(),
-                                b = right_value.string(),
-                                c = position.string()
-                            ),
-                            reason: ErrorReason::Runtime,
-                        });
+                // short-circuit: `false and _` is false, `true or _` is true
+                if let Value::Bool(left_bool) = left_value {
+                    if left_bool != is_and {
+                        return Ok(Value::Bool(left_bool));
                     }
 
-                    Value::Bool(left_bool) => {
-                        if let Value::Bool(right_bool) = right_value {
-                            return Ok(Value::Bool(left_bool && right_bool));
+                    let mut r = right_operand.as_ref().clone();
+                    match r.eval(ctx, stack, false)? {
+                        Value::Bool(right_bool) => return Ok(Value::Bool(right_bool)),
+                        right_value => {
+                            return Err(Err {
+                                message: logical_err(is_and, &left_value, &right_value, position),
+                                reason: ErrorReason::Syntax,
+                            })
                         }
-                    }
-
-                    _ => {
-                        return Err(Err {
-                            message: tr!(
-                                "errors.eval_binary_expr_node_e12",
-                                a = left_value.string(),
-                                b = right_value.string(),
-                                c = position.string()
-                            ),
-                            reason: ErrorReason::Syntax,
-                        });
                     }
                 }
-            }
 
-            Kind::LogicalOrOp => {
-                let (left_value, right_value) = left_right()?;
-                match left_value {
-                    // the LogicalOrOp will perform a bitwise or; `|`.
-                    Value::Number(left_num) => {
-                        if is_intable(&left_num)
-                            && let Value::Number(right_num) = right_value
-                            && is_intable(&right_num)
-                        {
-                            return Ok(Value::Number((left_num as i64 | right_num as i64) as f64));
-                        }
-
-                        return Err(Err {
-                            message: tr!(
-                                "errors.eval_binary_expr_node_e13",
-                                a = left_value.string(),
-                                b = right_value.string(),
-                                c = position.string()
-                            ),
-                            reason: ErrorReason::Runtime,
-                        });
-                    }
-
-                    Value::Bool(left_bool) => {
-                        if let Value::Bool(right_bool) = right_value {
-                            return Ok(Value::Bool(left_bool || right_bool));
-                        }
-                    }
-
-                    _ => {
-                        return Err(Err {
-                            message: tr!(
-                                "errors.eval_binary_expr_node_e14",
-                                a = left_value.string(),
-                                b = right_value.string(),
-                                c = position.string()
-                            ),
-                            reason: ErrorReason::Syntax,
-                        });
-                    }
-                }
+                return Err(Err {
+                    message: logical_err(
+                        is_and,
+                        &left_value,
+                        &Value::String(right_operand.string()),
+                        position,
+                    ),
+                    reason: ErrorReason::Syntax,
+                });
             }
 
             Kind::GreaterThanOp => {
@@ -1258,87 +1268,64 @@ fn eval_speak_function(
     }
 }
 
-// Expands out a recursive structure of thunks into a flat for loop control structure
-fn unwrap_thunk(ctx: &CallerCtx, stack: &mut StackFrame, thunk: &mut Value) -> Result<Value, Err> {
-    let mut is_thunk = true;
-    let mut stacks_added = 0;
-    'UNWRAP: while is_thunk {
-        match thunk {
-            Value::FunctionCallThunk { func, vt, .. } => {
-                stack.push_frame(vt.clone());
-                stacks_added += 1;
+// Runs a function's body in a new frame. The result is the value of the `return` that ends
+// the body, or `()` when the body ends without one.
+fn unwrap_thunk(_ctx: &CallerCtx, stack: &mut StackFrame, thunk: &mut Value) -> Result<Value, Err> {
+    match thunk {
+        Value::FunctionCallThunk { func, vt, .. } => {
+            stack.push_frame(vt.clone());
 
-                let defn = &mut func.defn;
-                match defn {
-                    Node::FunctionLiteral { sign, body, .. } => {
-                        let mut val: Value;
-                        for (i, stmt) in body.iter().enumerate() {
-                            val = stmt.clone().eval(ctx, stack, false)?;
-                            match val {
-                                Value::FunctionCallThunk { .. } => {
-                                    is_thunk = true;
-                                    continue 'UNWRAP;
-                                }
+            match &func.defn {
+                Node::FunctionLiteral { sign, body, .. } => {
+                    // break and continue cannot cross a function boundary
+                    let res = match eval_block(&UD, body, stack, false)? {
+                        Value::ReturnCalled(val) => *val,
+                        _ => Value::Empty,
+                    };
 
-                                _ => {
-                                    // if there's a next evaluation, assignment does not count
-                                    if let Value::Assignment(_) = val
-                                        && i + 1 < body.len()
-                                    {
-                                        continue;
-                                    }
-
-                                    // if the return type is that of the signature, return
-                                    if match val.value_type() {
-                                        Type::Object(obj) => obj,
-                                        Type::Array(..) => {
-                                            let v = val.value_type().string();
-                                            if let Value::Array(t, arr) = &val {
-                                                if arr.is_empty() && t == &Type::Empty {
-                                                    sign.2.string()
-                                                } else {
-                                                    v
-                                                }
-                                            } else {
-                                                v
-                                            }
-                                        }
-                                        _ => val.value_type().string(),
-                                    } == sign.2.string()
-                                    {
-                                        // pop stacks that were added, to free memory
-                                        for _ in 1..=stacks_added {
-                                            stack.pop_frame()?;
-                                        }
-
-                                        return Ok(val);
-                                    }
-                                }
-                            }
+                    // a returned value must have the declared result type
+                    if !matches!(res, Value::Empty) {
+                        let got = match &res {
+                            // an empty array matches any array type
+                            Value::Array(Type::Empty, arr) if arr.is_empty() => sign.2.string(),
+                            Value::Object { name, .. } => name.clone(),
+                            _ => res.value_type().string(),
+                        };
+                        if got != sign.2.string() {
+                            return Err(Err {
+                                message: tr!("errors.unwrap_thunk_e1", a = sign.2.string()),
+                                reason: ErrorReason::Runtime,
+                            });
                         }
-                        return Err(Err {
-                            message: tr!("errors.unwrap_thunk_e1", a = sign.2.string()),
-                            reason: ErrorReason::Runtime,
-                        });
                     }
-                    _ => {
-                        return Err(Err {
-                            message: tr!("errors.unwrap_thunk_e2", a = defn.string()),
-                            reason: ErrorReason::Assert,
-                        });
-                    }
+
+                    stack.pop_frame()?;
+                    Ok(res)
                 }
-            }
-            _ => {
-                return Err(Err {
-                    message: tr!("errors.unwrap_thunk_e3", a = thunk.string()),
+                defn => Err(Err {
+                    message: tr!("errors.unwrap_thunk_e2", a = defn.string()),
                     reason: ErrorReason::Assert,
-                });
+                }),
             }
         }
+        _ => Err(Err {
+            message: tr!("errors.unwrap_thunk_e3", a = thunk.string()),
+            reason: ErrorReason::Assert,
+        }),
     }
+}
 
-    unimplemented!("this code is never called")
+fn logical_err(is_and: bool, left: &Value, right: &Value, position: &Position) -> String {
+    let key = match is_and {
+        true => "errors.eval_binary_expr_node_e12",
+        false => "errors.eval_binary_expr_node_e14",
+    };
+    tr!(
+        key,
+        a = left.string(),
+        b = right.string(),
+        c = position.string()
+    )
 }
 
 fn is_intable(num: &f64) -> bool {

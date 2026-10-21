@@ -1,6 +1,6 @@
 name is "Osoro"
 sex is "Male"
-_age is 23 
+_age is 23
 
 create_person: name string -> Person
     x is Person {
@@ -8,6 +8,7 @@ create_person: name string -> Person
         sex,
         age _age,
     }
+    return x
 
 x is create_person "OtherGuy"
 println x.name

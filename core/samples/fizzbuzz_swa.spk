@@ -1,8 +1,10 @@
-fizzbuzz: n nambari -> mlolongo
-    kama n % 15 = 0 ? "FizzBuzz"
-    kama n % 3 = 0 ? "Fizz"
-    kama n % 5 = 0 ? "Buzz"
-    mlolongo_andika n
-
-// ita na nambari 45
-andika "matokeo ya fizzbuzz kwa {} ni {} yenyewe" 45 (fizzbuzz 45)
+// utekelezaji wa fizzbuzz
+kwa i katika 1..15
+    kama i % 15 = 0
+        andika_laini "FizzBuzz"
+    sivyo kama i % 3 = 0
+        andika_laini "Fizz"
+    sivyo kama i % 5 = 0
+        andika_laini "Buzz"
+    sivyo
+        andika_laini i

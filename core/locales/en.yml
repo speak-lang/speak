@@ -14,6 +14,11 @@ literals:
   break: break
   in: in
   if: if
+  else: else
+  return: return
+  and: and
+  or: or
+  not: not
   is: is
 builtins:
   print: print
@@ -52,10 +57,8 @@ errors:
   eval_binary_expr_node_e8: values %{a} and %{b} do not support division, at [%{c}]
   eval_binary_expr_node_e9: division by zero error in modulus, at [%{a}]
   eval_binary_expr_node_e10: cannot take modulus of non-integer value %{a}, at [%{b}]
-  eval_binary_expr_node_e11: cannot take logical '&' of non-integer values %{a} and %{b}, at [%{c}]
-  eval_binary_expr_node_e12: values %{a} and %{b} do not support bitwise or logical '&', at [%{c}]
-  eval_binary_expr_node_e13: cannot take logical '|' of non-integer values %{a} and %{b}, at [%{c}]
-  eval_binary_expr_node_e14: values %{a} and %{b} do not support bitwise or logical '|', at [%{c}]
+  eval_binary_expr_node_e12: "'and' needs bool values but got %{a} and %{b}, at [%{c}]"
+  eval_binary_expr_node_e14: "'or' needs bool values but got %{a} and %{b}, at [%{c}]"
   eval_binary_expr_node_e15: values %{a} and %{b} do not support comparison, at [%{c}]
   eval_binary_expr_node_e16: unknown binary operator %{a}
   eval_binary_expr_node_e17: cannot perform operation, %{a}, on (%{b}) and (%{c}), at [%{d}]
@@ -65,6 +68,7 @@ errors:
   eval_speak_function_e3: expected the return type to be an identifier node but got (%{a})
   eval_speak_function_e4: attempted to call a non-function value %{a} of type %{b}
   eval_for_expr_node_e1: iterable expected of type string or array but got (%{a}) at [%{b}]
+  eval_range_e1: range ends must be whole numbers but got %{a} and %{b}, at [%{c}]
   unwrap_thunk_e1: the expected return type `%{a}` could not be constructed
   unwrap_thunk_e2: expected function literal node value but got %{a}
   unwrap_thunk_e3: expected thunk value but got %{a}

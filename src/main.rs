@@ -48,8 +48,9 @@ fn main() {
 }
 
 /// True while `input` needs more lines: an unclosed bracket, paren or string,
-/// or a function body (a `name: args -> type` first line) not yet ended by a blank line.
-fn is_incomplete(input: &str) -> bool {
+/// or a block (a `name: args -> type` first line, or one starting with a block keyword
+/// such as `if` or `for`) not yet ended by a blank line.
+fn is_incomplete(input: &str, block_keywords: &[String]) -> bool {
     let (mut depth, mut in_str, mut prev) = (0i32, false, ' ');
     for line in input.lines() {
         for c in line.chars() {
@@ -70,12 +71,16 @@ fn is_incomplete(input: &str) -> bool {
     let first = input.lines().next().unwrap_or("");
     let is_fn =
         !first.starts_with(char::is_whitespace) && first.contains(':') && first.contains("->");
-    is_fn && !input.ends_with("\n\n")
+    let is_block = first.split_whitespace().next().is_some_and(|w| {
+        !first.starts_with(char::is_whitespace) && block_keywords.iter().any(|k| k == w)
+    });
+    (is_fn || is_block) && !input.ends_with("\n\n")
 }
 
 fn repl(ctx: &mut Context, speak: &str) {
     let t = |key: &str, arg: &str| speak_core::repl_text(speak, key, arg);
     let exit = t("exit", "");
+    let block_keywords = speak_core::block_keywords(speak);
     let history = env::var_os("HOME")
         .or_else(|| env::var_os("USERPROFILE"))
         .map(|h| std::path::PathBuf::from(h).join(".speak_history"));
@@ -106,7 +111,7 @@ fn repl(ctx: &mut Context, speak: &str) {
                 }
                 input.push_str(&line);
                 input.push('\n');
-                if is_incomplete(&input) {
+                if is_incomplete(&input, &block_keywords) {
                     continue;
                 }
                 let _ = rl.add_history_entry(input.trim_end());
@@ -135,6 +140,8 @@ mod tests {
 
     #[test]
     fn multiline_detection() {
+        let kw = ["if".to_string(), "for".to_string()];
+        let is_incomplete = |s| is_incomplete(s, &kw);
         assert!(!is_incomplete("1 + 1\n"));
         assert!(is_incomplete("f: (1,\n"));
         assert!(is_incomplete("[1, 2\n"));
@@ -144,5 +151,9 @@ mod tests {
         assert!(is_incomplete("f: n number -> number\n"));
         assert!(is_incomplete("f: n number -> number\n    n + 1\n"));
         assert!(!is_incomplete("f: n number -> number\n    n + 1\n\n"));
+        assert!(is_incomplete("for i in 1..3\n"));
+        assert!(is_incomplete("if x = 1\n    println x\n"));
+        assert!(!is_incomplete("if x = 1\n    println x\n\n"));
+        assert!(!is_incomplete("iffy is 1\n"));
     }
 }
