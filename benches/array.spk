@@ -1,7 +1,8 @@
 // recursion is the only counted loop; for-in iterates arrays
 build: arr []number n number -> []number
-    if n = 0 ? arr
-    build (arr + [n]) (n - 1)
+    if n = 0
+        return arr
+    return build (arr + [n]) (n - 1)
 
 total is 0
 seed is [0]

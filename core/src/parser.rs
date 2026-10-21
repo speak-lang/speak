@@ -258,7 +258,7 @@ impl Node {
                 format!("{} ({})", tr!("literals.break"), position.string())
             }
             Node::ReturnExpr { value, position } => {
-                return format!(
+                format!(
                     "{} ({}) {}",
                     tr!("literals.return"),
                     position.string(),

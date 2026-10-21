@@ -40,7 +40,7 @@ conformance! {
     collatz "en" ignore "known bug: stack overflow (SIGABRT) on recursive collatz 1_000",
     collatz_swa "sw" ignore "known bug: stack overflow (SIGABRT) on recursive collatz 1_000",
     error "en", fib "en", fib_swa "sw",
-    fizzbuzz "en", fizzbuzz_swa "sw", forloop "en", habari_dunia "sw",
+    blocks "en", fizzbuzz "en", fizzbuzz_swa "sw", forloop "en", habari_dunia "sw",
     hello_world "en",
     object "en" ignore "known bug: object fields print in random HashMap order",
 }
