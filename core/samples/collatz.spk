@@ -1,11 +1,16 @@
 // finding long collatz sequences
 
 next: n number -> number
-    if n % 2 = 0 ? n / 2 ! 3 * n + 1
+    if n % 2 = 0
+        n / 2
+    else
+        3 * n + 1
 
 collatz: n number -> []number
-    if n < 1 ? []
-    if n = 1 ? [n]
+    if n < 1
+        []
+    if n = 1
+        [n]
     [n] + collatz (next n)
 
 // run a search for longest collatz sequence under max

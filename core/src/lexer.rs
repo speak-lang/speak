@@ -23,6 +23,7 @@ pub enum Kind {
     EmptyIdentifier,
 
     If,
+    Else,
     For,
     In,
 
@@ -35,6 +36,7 @@ pub enum Kind {
     EmptyLiteral,
 
     NegationOp,
+    NotOp,
     AssignOp,
     AccessorOp,
     EllipsisOp,
@@ -52,9 +54,6 @@ pub enum Kind {
     TypeName(Type),
     Separator,
     Colon,
-
-    Bang,
-    QuestionMark,
 
     ModuleAccessor,
     FunctionArrow,
@@ -75,6 +74,7 @@ impl Kind {
             Kind::EmptyIdentifier => "'_'".to_string(),
 
             Kind::If => tr!("literals.if"),
+            Kind::Else => tr!("literals.else"),
             Kind::For => tr!("literals.for"),
             Kind::In => tr!("literals.in"),
             Kind::ContinueLiteral => tr!("literals.continue"),
@@ -90,10 +90,8 @@ impl Kind {
             Kind::Separator => "','".to_string(),
             Kind::Colon => "':'".to_string(),
 
-            Kind::Bang => "'!'".to_string(),
-            Kind::QuestionMark => "'?'".to_string(),
-
             Kind::NegationOp => "'~'".to_string(),
+            Kind::NotOp => tr!("literals.not"),
             Kind::AssignOp => tr!("literals.is"),
             Kind::AccessorOp => "'.'".to_string(),
             Kind::EllipsisOp => "..".to_string(),
@@ -102,8 +100,8 @@ impl Kind {
             Kind::MultiplyOp => "'*'".to_string(),
             Kind::DivideOp => "'/'".to_string(),
             Kind::ModulusOp => "'%'".to_string(),
-            Kind::LogicalAndOp => "'&'".to_string(),
-            Kind::LogicalOrOp => "'|'".to_string(),
+            Kind::LogicalAndOp => tr!("literals.and"),
+            Kind::LogicalOrOp => tr!("literals.or"),
             Kind::GreaterThanOp => "'>'".to_string(),
             Kind::LessThanOp => "'<'".to_string(),
             Kind::EqualOp => "'='".to_string(),
@@ -332,14 +330,6 @@ pub fn tokenize(
                     last_line_column.0 = line;
                     last_line_column.1 = column + 1;
                 }
-                '!' => {
-                    commit_prev()?;
-                    token_commit(Kind::Bang, tokens);
-                }
-                '?' => {
-                    commit_prev()?;
-                    token_commit(Kind::QuestionMark, tokens);
-                }
                 '=' => {
                     commit_prev()?;
                     token_commit(Kind::EqualOp, tokens);
@@ -375,6 +365,8 @@ pub fn tokenize(
                     {
                         entry.push(c);
                         entry.push(*k);
+                        last_line_column.0 = line;
+                        last_line_column.1 = column + 2;
                         buf_iter.next();
                         continue;
                     }
@@ -421,14 +413,6 @@ pub fn tokenize(
                 '%' => {
                     commit_prev()?;
                     token_commit(Kind::ModulusOp, tokens);
-                }
-                '&' => {
-                    commit_prev()?;
-                    token_commit(Kind::LogicalAndOp, tokens);
-                }
-                '|' => {
-                    commit_prev()?;
-                    token_commit(Kind::LogicalOrOp, tokens);
                 }
                 '>' => {
                     commit_prev()?;
@@ -508,6 +492,14 @@ fn commit_arbitrary(
         x if x == tr!("literals.false") => commit_token(Kind::FalseLiteral, tokens),
 
         x if x == tr!("literals.if") => commit_token(Kind::If, tokens),
+
+        x if x == tr!("literals.else") => commit_token(Kind::Else, tokens),
+
+        x if x == tr!("literals.and") => commit_token(Kind::LogicalAndOp, tokens),
+
+        x if x == tr!("literals.or") => commit_token(Kind::LogicalOrOp, tokens),
+
+        x if x == tr!("literals.not") => commit_token(Kind::NotOp, tokens),
 
         x if x == tr!("literals.for") => commit_token(Kind::For, tokens),
 

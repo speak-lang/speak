@@ -1,6 +1,20 @@
 numbers is [1,2,3,10]
 for num in numbers
     println num
-    if num = 3 ? break
+    if num = 3
+        break
 
 println "10 did not print"
+
+// for with a condition loops while it holds
+n is 0
+for n < 3
+    n is n + 1
+println n
+
+// a bare for loops until break
+for
+    n is n + 1
+    if n > 5
+        break
+println n
