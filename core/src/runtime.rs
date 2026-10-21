@@ -152,6 +152,7 @@ pub struct Context {
     /// Frame represents the Context's global heap.
     pub frame: StackFrame,
 
+    builtins_loaded: bool,
     debug_lex: bool,
     debug_parse: bool,
     debug_dump: bool,
@@ -162,6 +163,7 @@ impl Context {
         Context {
             file: None,
             frame: StackFrame::new(VTable(HashMap::new()), StackFrame::Nil),
+            builtins_loaded: false,
             debug_lex: *verbose,
             debug_parse: *verbose,
             debug_dump: *verbose,
@@ -181,8 +183,11 @@ impl Context {
         let len = nodes.len();
         let mut last_val = Value::Empty;
 
-        // load runtime
-        load_builtins(self)?;
+        // load runtime once, so later evals keep user bindings that shadow builtins
+        if !self.builtins_loaded {
+            load_builtins(self)?;
+            self.builtins_loaded = true;
+        }
 
         for (i, node) in nodes.into_iter().enumerate() {
             let mut node = node;
@@ -469,5 +474,21 @@ mod tests {
             }
             Err(err) => panic!("{:?}", err),
         }
+    }
+
+    #[test]
+    fn repeated_eval_keeps_shadowed_builtin() {
+        let mut ctx_test = Context::new(&false);
+
+        for src in ["sprint \"a\"", "sprint is 1", "sprint"] {
+            if let Err(err) = ctx_test.exec("en", BufReader::new(src.as_bytes())) {
+                panic!("{:?}", err)
+            }
+        }
+        assert!(ctx_test
+            .frame
+            .get("sprint")
+            .expect("binding must be present")
+            .equals(Value::Number(1.0)));
     }
 }
