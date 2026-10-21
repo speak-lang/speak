@@ -41,16 +41,16 @@ errors:
   eval_e6: slicing operation does not provide a start or an end index
   eval_e7: expected identifier node but got %{a} at [%{b}]
   eval_e8: unexpected literal %{a} at [%{b}]
-  eval_if_expr_node_e1: the codition, (%{a}) at [%{b}], does not evaluate to bool value
+  eval_if_expr_node_e1: the condition, (%{a}) at [%{b}], does not evaluate to bool value
   eval_binary_expr_node_e1: invalid property name %{a} of composite value %{b}, at [%{c}]
   eval_binary_expr_node_e2: composite value %{a} unknown
   eval_binary_expr_node_e3: cannot assign value to non-identifier %{a}, at [%{b}]
   eval_binary_expr_node_e4: values %{a} and %{b} do not support addition operation, at [%{c}]
   eval_binary_expr_node_e5: values %{a} and %{b} do not support subtraction operation, at [%{c}]
   eval_binary_expr_node_e6: values %{a} and %{b} do not support multiplication, at [%{c}]
-  eval_binary_expr_node_e7: decision by zero error, at [%{a}]
+  eval_binary_expr_node_e7: division by zero error, at [%{a}]
   eval_binary_expr_node_e8: values %{a} and %{b} do not support division, at [%{c}]
-  eval_binary_expr_node_e9: decision by zero error in modulus, at [%{a}]
+  eval_binary_expr_node_e9: division by zero error in modulus, at [%{a}]
   eval_binary_expr_node_e10: cannot take modulus of non-integer value %{a}, at [%{b}]
   eval_binary_expr_node_e11: cannot take logical '&' of non-integer values %{a} and %{b}, at [%{c}]
   eval_binary_expr_node_e12: values %{a} and %{b} do not support bitwise or logical '&', at [%{c}]
@@ -81,7 +81,7 @@ errors:
   parse_object_literal_e2: parsing objected literal, expected identifier/separator at [%{a}]
   parse_function_literal_e1: the function literal is declared at [%{a}] and should be nested as a closure
   parse_function_literal_e2: expected a type, found (%{a}) at [%{b}]
-  parse_fn_sign_args_e1: the signature parsed more types than arguements at [%{a}]
+  parse_fn_sign_args_e1: the signature parsed more types than arguments at [%{a}]
   parse_fn_sign_args_e2: expected identifier, found (%{a}) at [%{b}]
   parse_for_expr_e1: expected `%{a}` keyword at [%{b}]
   guard_unexpected_input_end_e1: unexpected end of input at [%{a}]
@@ -92,7 +92,7 @@ errors:
   load_builtins_e1: "%{a} takes at least one argument"
   load_builtins_e2: "%{a} takes exactly one argument"
   load_builtins_e3: "%{a} can only be called for array and string types"
-  load_builtins_e4: mod arguements must be string literals
+  load_builtins_e4: mod arguments must be string literals
   load_builtins_e5: Stackframe provided is Nil
 repl:
   prompt: "> "

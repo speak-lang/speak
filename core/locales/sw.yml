@@ -48,9 +48,10 @@ errors:
   eval_binary_expr_node_e4: thamani %{a} na %{b} hazitumii operesheni ya kuongeza, kwenye nafasi [%{c}]
   eval_binary_expr_node_e5: thamani %{a} na %{b} hazitumii operesheni ya kutoa, kwenye nafasi [%{c}]
   eval_binary_expr_node_e6: thamani %{a} na %{b} hazitumii utendakazi wa kuzidisha, kwenye nafasi [%{c}]
-  eval_binary_expr_node_e7: uamuzi kwa kosa sifuri, kwenye nafasi [%{a}]
+  # NOTE: e7 and e9 (division by zero) need native-speaker review
+  eval_binary_expr_node_e7: kugawanya kwa sifuri, kwenye nafasi [%{a}]
   eval_binary_expr_node_e8: thamani %{a} na %{b} hazitumii mgawanyiko, kwenye nafasi [%{c}]
-  eval_binary_expr_node_e9: uamuzi wa kosa la sifuri katika moduli, kwenye nafasi [%{a}]
+  eval_binary_expr_node_e9: kugawanya kwa sifuri katika moduli, kwenye nafasi [%{a}]
   eval_binary_expr_node_e10: haiwezi kuchukua moduli ya thamani isiyo kamili %{a}, kwenye nafasi [%{b}]
   eval_binary_expr_node_e11: haiwezi kuchukua kimantiki '&' ya thamani zisizo kamili %{a} na %{b}, kwenye nafasi [%{c}]
   eval_binary_expr_node_e12: thamani %{a} na %{b} hazitumii 'bitwise' au kimantiki '&', kwenye nafasi [%{c}]
