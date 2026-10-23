@@ -14,6 +14,12 @@ literals:
   break: vunja
   in: katika
   if: kama
+  # TODO(native-speaker review): sivyo, na, au, si, rudisha are proposed words
+  else: sivyo
+  return: rudisha
+  and: na
+  or: au
+  not: si
   is: ni
 builtins:
   print: andika
@@ -48,14 +54,13 @@ errors:
   eval_binary_expr_node_e4: thamani %{a} na %{b} hazitumii operesheni ya kuongeza, kwenye nafasi [%{c}]
   eval_binary_expr_node_e5: thamani %{a} na %{b} hazitumii operesheni ya kutoa, kwenye nafasi [%{c}]
   eval_binary_expr_node_e6: thamani %{a} na %{b} hazitumii utendakazi wa kuzidisha, kwenye nafasi [%{c}]
-  eval_binary_expr_node_e7: uamuzi kwa kosa sifuri, kwenye nafasi [%{a}]
+  # NOTE: e7 and e9 (division by zero) need native-speaker review
+  eval_binary_expr_node_e7: kugawanya kwa sifuri, kwenye nafasi [%{a}]
   eval_binary_expr_node_e8: thamani %{a} na %{b} hazitumii mgawanyiko, kwenye nafasi [%{c}]
-  eval_binary_expr_node_e9: uamuzi wa kosa la sifuri katika moduli, kwenye nafasi [%{a}]
+  eval_binary_expr_node_e9: kugawanya kwa sifuri katika moduli, kwenye nafasi [%{a}]
   eval_binary_expr_node_e10: haiwezi kuchukua moduli ya thamani isiyo kamili %{a}, kwenye nafasi [%{b}]
-  eval_binary_expr_node_e11: haiwezi kuchukua kimantiki '&' ya thamani zisizo kamili %{a} na %{b}, kwenye nafasi [%{c}]
-  eval_binary_expr_node_e12: thamani %{a} na %{b} hazitumii 'bitwise' au kimantiki '&', kwenye nafasi [%{c}]
-  eval_binary_expr_node_e13: haiwezi kuchukua '|' yenye mantiki ya thamani zisizo kamili %{a} na %{b}, kwenye nafasi [%{c}]
-  eval_binary_expr_node_e14: thamani %{a} na %{b} hazitumii 'bitwise' au kimantiki '|', kwenye nafasi [%{c}]
+  eval_binary_expr_node_e12: "'na' inahitaji thamani za bulin lakini ilipata %{a} na %{b}, kwenye nafasi [%{c}]"
+  eval_binary_expr_node_e14: "'au' inahitaji thamani za bulin lakini ilipata %{a} na %{b}, kwenye nafasi [%{c}]"
   eval_binary_expr_node_e15: thamani %{a} na %{b} haziauni utendakazi wa kulinganisha, kwenye nafasi [%{c}]
   eval_binary_expr_node_e16: opereta binary haijulikani %{a}
   eval_binary_expr_node_e17: haiwezi kufanya operesheni, %{a}, kwenye (%{b}) na (%{c}), kwenye nafasi [%{d}]
@@ -65,6 +70,7 @@ errors:
   eval_speak_function_e3: ilitarajia aina ya kurudi kuwa nodi ya kitambulisho lakini nikapata (%{a})
   eval_speak_function_e4: ilijaribu kuita thamani isiyo-kazi %{a} ya aina %{b}
   eval_for_expr_node_e1: iterable ilitarajiwa ya aina ya mlolongo au safu lakini ilipata (%{a}) kwa [%{b}]
+  eval_range_e1: ncha za masafa lazima ziwe nambari kamili lakini ilipata %{a} na %{b}, kwenye nafasi [%{c}]
   unwrap_thunk_e1: aina ya kurejesha inayotarajiwa `%{a}` haikuweza kujengwa
   unwrap_thunk_e2: utendakazi uliotarajiwa thamani halisi ya nodi lakini nikapata %{a}
   unwrap_thunk_e3: ilitarajia thamani ya 'thunk' lakini ilipata %{a}
@@ -94,4 +100,9 @@ errors:
   load_builtins_e3: "%{a} inaweza tu kuitwa kwa safu na aina za mlolongo"
   load_builtins_e4: hoja za mod lazima ziwe ya milolongo halisi
   load_builtins_e5: Stackframe uliopewa ni Sifuri
-  
+repl:
+  prompt: "> "
+  continuation: ".. "
+  welcome: Karibu kwenye Speak!
+  hint: "Andika %{a} au bonyeza Ctrl+D ili kutoka."
+  exit: toka

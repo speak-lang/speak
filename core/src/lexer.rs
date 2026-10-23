@@ -4,17 +4,17 @@ use super::{
     log::log_debug,
 };
 use regex::Regex;
-use rust_i18n::t;
 use std::io::{BufRead, BufReader};
+use std::sync::LazyLock;
 
-lazy_static! {
-    static ref IDENTIFIER_REGEX: Regex =
-        Regex::new(r"^[a-zA-Z_][a-zA-Z0-9_]*$").expect("regex identifier pattern is valid");
-    static ref NUMBER_REGEX: Regex =
-        Regex::new(r"^[+-]?\d+(_\d+)*(\.\d+)?$").expect("regex number pattern is valid");
-    static ref ARRAY_TYPE_REGEX: Regex =
-        Regex::new(r"^(\[\])+([a-z]+)$").expect("regex array pattern is valid");
-}
+static IDENTIFIER_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"^[a-zA-Z_][a-zA-Z0-9_]*$").expect("regex identifier pattern is valid")
+});
+static NUMBER_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"^[+-]?\d+(_\d+)*(\.\d+)?$").expect("regex number pattern is valid")
+});
+static ARRAY_TYPE_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^(\[\])+([a-z]+)$").expect("regex array pattern is valid"));
 
 // Kind is the sum type of all possible types of tokens in a Speak program.
 #[derive(Debug, Clone, PartialEq)]
@@ -23,11 +23,13 @@ pub enum Kind {
     EmptyIdentifier,
 
     If,
+    Else,
     For,
     In,
 
     ContinueLiteral,
     BreakLiteral,
+    ReturnLiteral,
     TrueLiteral,
     FalseLiteral,
     NumberLiteral,
@@ -35,6 +37,7 @@ pub enum Kind {
     EmptyLiteral,
 
     NegationOp,
+    NotOp,
     AssignOp,
     AccessorOp,
     EllipsisOp,
@@ -53,9 +56,6 @@ pub enum Kind {
     Separator,
     Colon,
 
-    Bang,
-    QuestionMark,
-
     ModuleAccessor,
     FunctionArrow,
 
@@ -71,30 +71,30 @@ impl Kind {
     pub fn string(&self) -> String {
         match self {
             // Kind::Expr => "expression".to_string(),
-            Kind::Identifier => t!("misc.identifier"),
+            Kind::Identifier => tr!("misc.identifier"),
             Kind::EmptyIdentifier => "'_'".to_string(),
 
-            Kind::If => t!("literals.if"),
-            Kind::For => t!("literals.for"),
-            Kind::In => t!("literals.in"),
-            Kind::ContinueLiteral => t!("literals.continue"),
-            Kind::BreakLiteral => t!("literals.break"),
+            Kind::If => tr!("literals.if"),
+            Kind::Else => tr!("literals.else"),
+            Kind::For => tr!("literals.for"),
+            Kind::In => tr!("literals.in"),
+            Kind::ContinueLiteral => tr!("literals.continue"),
+            Kind::BreakLiteral => tr!("literals.break"),
+            Kind::ReturnLiteral => tr!("literals.return"),
 
-            Kind::TrueLiteral => format!("{} {}", t!("literals.true"), t!("misc.literal")),
-            Kind::FalseLiteral => format!("{} {}", t!("literals.false"), t!("misc.literal")),
-            Kind::NumberLiteral => format!("{} {}", t!("types.number"), t!("misc.literal")),
-            Kind::StringLiteral => format!("{} {}", t!("types.string"), t!("misc.literal")),
+            Kind::TrueLiteral => format!("{} {}", tr!("literals.true"), tr!("misc.literal")),
+            Kind::FalseLiteral => format!("{} {}", tr!("literals.false"), tr!("misc.literal")),
+            Kind::NumberLiteral => format!("{} {}", tr!("types.number"), tr!("misc.literal")),
+            Kind::StringLiteral => format!("{} {}", tr!("types.string"), tr!("misc.literal")),
             Kind::EmptyLiteral => "()".to_string(),
 
             Kind::TypeName(t) => t.string(),
             Kind::Separator => "','".to_string(),
             Kind::Colon => "':'".to_string(),
 
-            Kind::Bang => "'!'".to_string(),
-            Kind::QuestionMark => "'?'".to_string(),
-
             Kind::NegationOp => "'~'".to_string(),
-            Kind::AssignOp => t!("literals.is"),
+            Kind::NotOp => tr!("literals.not"),
+            Kind::AssignOp => tr!("literals.is"),
             Kind::AccessorOp => "'.'".to_string(),
             Kind::EllipsisOp => "..".to_string(),
             Kind::AddOp => "'+'".to_string(),
@@ -102,8 +102,8 @@ impl Kind {
             Kind::MultiplyOp => "'*'".to_string(),
             Kind::DivideOp => "'/'".to_string(),
             Kind::ModulusOp => "'%'".to_string(),
-            Kind::LogicalAndOp => "'&'".to_string(),
-            Kind::LogicalOrOp => "'|'".to_string(),
+            Kind::LogicalAndOp => tr!("literals.and"),
+            Kind::LogicalOrOp => tr!("literals.or"),
             Kind::GreaterThanOp => "'>'".to_string(),
             Kind::LessThanOp => "'<'".to_string(),
             Kind::EqualOp => "'='".to_string(),
@@ -195,7 +195,7 @@ pub fn tokenize(
         let mut entry = String::new();
         let mut last_line_column = (0, 0);
 
-        let mut buf_iter = buf.chars().into_iter().enumerate().peekable();
+        let mut buf_iter = buf.chars().enumerate().peekable();
         while let Some((column, c)) = buf_iter.next() {
             let token_commit = |kind, tokens| {
                 commit(
@@ -264,7 +264,7 @@ pub fn tokenize(
                             },
                             None => {
                                 return Err(Err {
-                                    message: t!("errors.tokenize_e"),
+                                    message: tr!("errors.tokenize_e"),
                                     reason: ErrorReason::Syntax,
                                 });
                             }
@@ -275,23 +275,22 @@ pub fn tokenize(
                     commit_prev()?;
 
                     // lookahead for another ':', making up ::; module accessor
-                    if let Some((_, c)) = buf_iter.peek() {
-                        if *c == ':' {
-                            token_commit(Kind::ModuleAccessor, tokens);
-                            buf_iter.next();
-                            continue;
-                        }
+                    if let Some((_, c)) = buf_iter.peek()
+                        && *c == ':'
+                    {
+                        token_commit(Kind::ModuleAccessor, tokens);
+                        buf_iter.next();
+                        continue;
                     }
                     token_commit(Kind::Colon, tokens);
                 }
                 '_' => {
-                    if entry.is_empty() {
-                        if let Some((_, _c)) = buf_iter.peek() {
-                            if *_c == ' ' {
-                                token_commit(Kind::EmptyIdentifier, tokens);
-                                continue;
-                            }
-                        }
+                    if entry.is_empty()
+                        && let Some((_, _c)) = buf_iter.peek()
+                        && *_c == ' '
+                    {
+                        token_commit(Kind::EmptyIdentifier, tokens);
+                        continue;
                     }
 
                     entry.push(c);
@@ -304,13 +303,13 @@ pub fn tokenize(
                 }
                 '.' => {
                     // if next token is `.`, tokenize `..` Ellipsis
-                    if let Some((_, c)) = buf_iter.peek() {
-                        if *c == '.' {
-                            commit_prev()?;
-                            token_commit(Kind::EllipsisOp, tokens);
-                            buf_iter.next();
-                            continue;
-                        }
+                    if let Some((_, c)) = buf_iter.peek()
+                        && *c == '.'
+                    {
+                        commit_prev()?;
+                        token_commit(Kind::EllipsisOp, tokens);
+                        buf_iter.next();
+                        continue;
                     }
 
                     // if there is a previous entry let's try resolve as [Identifier][AccessorOp][Identifier]
@@ -333,26 +332,18 @@ pub fn tokenize(
                     last_line_column.0 = line;
                     last_line_column.1 = column + 1;
                 }
-                '!' => {
-                    commit_prev()?;
-                    token_commit(Kind::Bang, tokens);
-                }
-                '?' => {
-                    commit_prev()?;
-                    token_commit(Kind::QuestionMark, tokens);
-                }
                 '=' => {
                     commit_prev()?;
                     token_commit(Kind::EqualOp, tokens);
                 }
                 '(' => {
                     commit_prev()?;
-                    if let Some((_, c)) = buf_iter.peek() {
-                        if *c == ')' {
-                            token_commit(Kind::EmptyLiteral, tokens);
-                            buf_iter.next();
-                            continue;
-                        }
+                    if let Some((_, c)) = buf_iter.peek()
+                        && *c == ')'
+                    {
+                        token_commit(Kind::EmptyLiteral, tokens);
+                        buf_iter.next();
+                        continue;
                     }
 
                     token_commit(Kind::LeftParen, tokens);
@@ -371,13 +362,15 @@ pub fn tokenize(
                 }
                 '[' => {
                     commit_prev()?;
-                    if let Some((_, k)) = buf_iter.peek() {
-                        if *k == ']' {
-                            entry.push(c);
-                            entry.push(*k);
-                            buf_iter.next();
-                            continue;
-                        }
+                    if let Some((_, k)) = buf_iter.peek()
+                        && *k == ']'
+                    {
+                        entry.push(c);
+                        entry.push(*k);
+                        last_line_column.0 = line;
+                        last_line_column.1 = column + 2;
+                        buf_iter.next();
+                        continue;
                     }
 
                     token_commit(Kind::LeftBracket, tokens);
@@ -422,14 +415,6 @@ pub fn tokenize(
                 '%' => {
                     commit_prev()?;
                     token_commit(Kind::ModulusOp, tokens);
-                }
-                '&' => {
-                    commit_prev()?;
-                    token_commit(Kind::LogicalAndOp, tokens);
-                }
-                '|' => {
-                    commit_prev()?;
-                    token_commit(Kind::LogicalOrOp, tokens);
                 }
                 '>' => {
                     commit_prev()?;
@@ -498,27 +483,37 @@ fn commit_arbitrary(
     };
 
     match entry.as_str() {
-        x if x == t!("types.number") => commit_token(Kind::TypeName(Type::Number), tokens),
+        x if x == tr!("types.number") => commit_token(Kind::TypeName(Type::Number), tokens),
 
-        x if x == t!("types.bool") => commit_token(Kind::TypeName(Type::Bool), tokens),
+        x if x == tr!("types.bool") => commit_token(Kind::TypeName(Type::Bool), tokens),
 
-        x if x == t!("types.string") => commit_token(Kind::TypeName(Type::String), tokens),
+        x if x == tr!("types.string") => commit_token(Kind::TypeName(Type::String), tokens),
 
-        x if x == t!("literals.true") => commit_token(Kind::TrueLiteral, tokens),
+        x if x == tr!("literals.true") => commit_token(Kind::TrueLiteral, tokens),
 
-        x if x == t!("literals.false") => commit_token(Kind::FalseLiteral, tokens),
+        x if x == tr!("literals.false") => commit_token(Kind::FalseLiteral, tokens),
 
-        x if x == t!("literals.if") => commit_token(Kind::If, tokens),
+        x if x == tr!("literals.if") => commit_token(Kind::If, tokens),
 
-        x if x == t!("literals.for") => commit_token(Kind::For, tokens),
+        x if x == tr!("literals.else") => commit_token(Kind::Else, tokens),
 
-        x if x == t!("literals.in") => commit_token(Kind::In, tokens),
+        x if x == tr!("literals.and") => commit_token(Kind::LogicalAndOp, tokens),
 
-        x if x == t!("literals.continue") => commit_token(Kind::ContinueLiteral, tokens),
+        x if x == tr!("literals.or") => commit_token(Kind::LogicalOrOp, tokens),
 
-        x if x == t!("literals.break") => commit_token(Kind::BreakLiteral, tokens),
+        x if x == tr!("literals.not") => commit_token(Kind::NotOp, tokens),
 
-        x if x == t!("literals.is") => commit_token(Kind::AssignOp, tokens),
+        x if x == tr!("literals.for") => commit_token(Kind::For, tokens),
+
+        x if x == tr!("literals.in") => commit_token(Kind::In, tokens),
+
+        x if x == tr!("literals.continue") => commit_token(Kind::ContinueLiteral, tokens),
+
+        x if x == tr!("literals.break") => commit_token(Kind::BreakLiteral, tokens),
+
+        x if x == tr!("literals.return") => commit_token(Kind::ReturnLiteral, tokens),
+
+        x if x == tr!("literals.is") => commit_token(Kind::AssignOp, tokens),
 
         "->" => commit_token(Kind::FunctionArrow, tokens),
 
@@ -611,7 +606,7 @@ fn commit_arbitrary(
                     Ok(())
                 }
                 false => Err(Err {
-                    message: t!("errors.commit_arbitrary_e", a = entry),
+                    message: tr!("errors.commit_arbitrary_e", a = entry),
                     reason: ErrorReason::Syntax,
                 }),
             }

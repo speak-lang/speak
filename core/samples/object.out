@@ -1,0 +1,5 @@
+exit: 0
+OtherGuy
+object (Person): {"age": (Number, Number(21.0)), "sex": (String, String("Male")), "name": (String, String("OtherGuy"))}
+[32;1m
+[0;0m
